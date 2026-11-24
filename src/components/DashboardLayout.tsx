@@ -3,7 +3,6 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import {
   Briefcase,
   Building2,
-  Flame,
   LogOut,
   Menu,
   MessageSquare,
@@ -12,6 +11,9 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { api, resolveAssetUrl } from '../services/api';
 import { getInitials } from '../utils/formatters';
+import { formatCompanyRole, formatPlanLabel } from '../utils/constants';
+import { BrandMark, TriageIcon } from './BrandMark';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 export function DashboardLayout() {
   const { user, company, logout } = useAuth();
@@ -19,6 +21,11 @@ export function DashboardLayout() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [pendingApplicantsTotal, setPendingApplicantsTotal] = useState(0);
   const [matchesTotal, setMatchesTotal] = useState(0);
+
+  const { containerRef: sidebarRef, handleBackdropClick } = useDialogA11y<HTMLElement>({
+    open: mobileMenuOpen,
+    onClose: () => setMobileMenuOpen(false),
+  });
 
   const loadNavCounts = useCallback(async () => {
     try {
@@ -49,20 +56,22 @@ export function DashboardLayout() {
     <div className="app-shell">
       {mobileMenuOpen && (
         <div
-          className="overlay-backdrop"
-          style={{ justifyContent: 'flex-start' }}
-          onClick={() => setMobileMenuOpen(false)}
+          className="overlay-backdrop overlay-backdrop-start"
+          onClick={handleBackdropClick}
+          aria-hidden="true"
         />
       )}
 
-      <aside className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`} aria-label="Menu empresarial">
+      <aside
+        ref={sidebarRef}
+        tabIndex={mobileMenuOpen ? -1 : undefined}
+        className={`sidebar ${mobileMenuOpen ? 'mobile-open' : ''}`}
+        aria-label="Menu empresarial"
+      >
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Link to="/" className="brand-mark">
-              <span className="brand-icon" aria-hidden="true">
-                <Briefcase size={19} strokeWidth={2.3} />
-              </span>
-              <span>Trabalhaki</span>
+          <div className="row-between">
+            <Link to="/" aria-label="Trabalhaki — Página inicial">
+              <BrandMark compact />
             </Link>
             {mobileMenuOpen && (
               <button
@@ -77,31 +86,24 @@ export function DashboardLayout() {
           </div>
 
           <div className="sidebar-company-box">
-            <div className="avatar-badge" style={{ width: 40, height: 40, fontSize: '0.82rem' }}>
+            <div className="avatar-badge avatar-sm">
               {logoSrc ? (
                 <img src={logoSrc} alt={company?.name || 'Logo da empresa'} />
               ) : (
                 getInitials(company?.name || user?.email)
               )}
             </div>
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <div
-                style={{
-                  fontWeight: 700,
-                  fontSize: '0.88rem',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}
-              >
+            <div className="min-w-0 flex-1">
+              <div className="sidebar-company-name truncate">
                 {company?.name || 'Sua empresa'}
               </div>
-              <div style={{ marginTop: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="sidebar-company-plan">
                 <span
-                  className={`badge ${company?.planType === 'PREMIUM' ? 'badge-indigo' : 'badge-mint'}`}
-                  style={{ padding: '2px 7px', fontSize: '0.7rem' }}
+                  className={`badge badge-xs ${
+                    company?.planType === 'PREMIUM' ? 'badge-indigo' : 'badge-mint'
+                  }`}
                 >
-                  Plano {company?.planType || 'FREE'}
+                  {formatPlanLabel(company?.planType)}
                 </span>
               </div>
             </div>
@@ -125,8 +127,8 @@ export function DashboardLayout() {
               onClick={() => setMobileMenuOpen(false)}
             >
               <span className="sidebar-link-main">
-                <Flame size={18} />
-                Swipe de Candidatos
+                <TriageIcon size={18} />
+                Triagem de Candidatos
               </span>
               {pendingApplicantsTotal > 0 && (
                 <span className="sidebar-count">{pendingApplicantsTotal}</span>
@@ -159,21 +161,10 @@ export function DashboardLayout() {
         </div>
 
         <div className="sidebar-footer">
-          <div style={{ padding: '0 6px' }}>
-            <div
-              style={{
-                fontSize: '0.82rem',
-                fontWeight: 600,
-                color: 'var(--color-text)',
-                whiteSpace: 'nowrap',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-              }}
-            >
-              {user?.email}
-            </div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
-              {user?.companyRole === 'ADMIN' ? 'Administrador da conta' : 'Recrutador'}
+          <div className="sidebar-user-meta">
+            <div className="sidebar-user-email truncate">{user?.email}</div>
+            <div className="sidebar-user-role">
+              {formatCompanyRole(user?.companyRole)}
             </div>
           </div>
 
@@ -195,7 +186,7 @@ export function DashboardLayout() {
             <Menu size={18} />
             Menu
           </button>
-          <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
+          <span className="sidebar-company-name truncate">
             {company?.name || 'Trabalhaki Empresas'}
           </span>
           <button type="button" className="btn btn-ghost btn-sm" onClick={handleLogout} aria-label="Sair">

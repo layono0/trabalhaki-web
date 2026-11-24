@@ -14,6 +14,7 @@ import { api, ApiError, resolveAssetUrl } from '../services/api';
 import type { CompanyMemberResponse, CompanyRole } from '../types/api';
 import { formatCnpj } from '../utils/cnpj';
 import { formatDateTime, formatVerificationStatus, getInitials } from '../utils/formatters';
+import { BRAZIL_STATES, formatCompanyRole, formatPlanLabel } from '../utils/constants';
 
 export function CompanyProfilePage() {
   const { user, company, setCompanyData } = useAuth();
@@ -104,7 +105,9 @@ export function CompanyProfilePage() {
       populateForm(updated);
       setSuccess('Perfil institucional atualizado com sucesso.');
     } catch (err) {
-      setError(err instanceof ApiError || err instanceof Error ? err.message : 'Erro ao salvar perfil.');
+      setError(
+        err instanceof ApiError || err instanceof Error ? err.message : 'Erro ao salvar perfil.'
+      );
     } finally {
       setIsSavingProfile(false);
     }
@@ -156,7 +159,9 @@ export function CompanyProfilePage() {
       setMembers((prev) => [...prev, created]);
       setMemberEmail('');
       setMemberPassword('');
-      setMemberSuccess(`Membro ${created.email} adicionado como ${created.companyRole}.`);
+      setMemberSuccess(
+        `Membro ${created.email} adicionado como ${formatCompanyRole(created.companyRole)}.`
+      );
     } catch (err) {
       setMemberError(err instanceof Error ? err.message : 'Não foi possível adicionar o membro.');
     } finally {
@@ -178,27 +183,26 @@ export function CompanyProfilePage() {
       </div>
 
       {isLoading ? (
-        <div className="empty-state">
-          <p style={{ color: 'var(--color-text-secondary)' }}>Carregando perfil da empresa...</p>
+        <div className="profile-grid" aria-busy="true" aria-label="Carregando perfil da empresa">
+          <div className="skeleton-card" style={{ minHeight: 360 }}>
+            <div className="skeleton skeleton-title" />
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton skeleton-line" style={{ width: '80%' }} />
+            <div className="skeleton skeleton-line" />
+          </div>
+          <div className="skeleton-card" style={{ minHeight: 260 }}>
+            <div className="skeleton skeleton-title" />
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton skeleton-line" style={{ width: '70%' }} />
+          </div>
         </div>
       ) : (
         <div className="profile-grid">
           {/* Dados da empresa */}
           <section className="panel-surface">
-            <div
-              style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 16,
-                paddingBottom: 20,
-                borderBottom: '1px solid var(--color-border)',
-                marginBottom: 20,
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-                <div className="avatar-badge" style={{ width: 68, height: 68, fontSize: '1.25rem' }}>
+            <div className="profile-hero-bar">
+              <div className="demo-avatar-group">
+                <div className="avatar-badge avatar-xl">
                   {previewLogo ? (
                     <img src={previewLogo} alt={company?.name || 'Logo'} />
                   ) : (
@@ -206,12 +210,14 @@ export function CompanyProfilePage() {
                   )}
                 </div>
                 <div>
-                  <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>{company?.name}</h2>
-                  <div className="mono" style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary)', marginTop: 3 }}>
+                  <h2 className="drawer-title">{company?.name}</h2>
+                  <div className="mono text-xs text-muted" style={{ marginTop: 3 }}>
                     CNPJ {company?.cnpj ? formatCnpj(company.cnpj) : '—'}
                   </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-                    <span className="badge badge-indigo">Plano {company?.planType || 'FREE'}</span>
+                  <div className="row-wrap" style={{ marginTop: 8 }}>
+                    <span className="badge badge-indigo">
+                      {formatPlanLabel(company?.planType)}
+                    </span>
                     <span
                       className={`badge ${
                         company?.verificationStatus === 'VERIFIED' ? 'badge-mint' : 'badge-neutral'
@@ -225,7 +231,7 @@ export function CompanyProfilePage() {
               </div>
 
               {isAdmin && (
-                <label className="btn btn-secondary btn-sm" style={{ cursor: 'pointer' }}>
+                <label className="btn btn-secondary btn-sm">
                   <Upload size={15} />
                   {isUploadingLogo ? 'Enviando...' : 'Enviar logo'}
                   <input
@@ -240,30 +246,30 @@ export function CompanyProfilePage() {
             </div>
 
             {!isAdmin && (
-              <div className="alert alert-info" style={{ marginBottom: 18 }}>
-                <Building2 size={17} />
+              <div className="alert alert-info">
+                <Building2 size={17} className="icon-shrink" />
                 <span>
-                  Você acessa como <strong>RECRUITER</strong>. Apenas usuários{' '}
-                  <strong>ADMIN</strong> podem alterar dados institucionais ou adicionar membros.
+                  Você acessa como <strong>Recrutador</strong>. Apenas administradores podem alterar
+                  dados institucionais ou adicionar membros à equipe.
                 </span>
               </div>
             )}
 
             {error && (
-              <div className="alert alert-error" role="alert" style={{ marginBottom: 18 }}>
-                <AlertCircle size={17} />
+              <div className="alert alert-error" role="alert">
+                <AlertCircle size={17} className="icon-shrink" />
                 <span>{error}</span>
               </div>
             )}
 
             {success && (
-              <div className="alert alert-success" style={{ marginBottom: 18 }}>
-                <CheckCircle2 size={17} />
+              <div className="alert alert-success">
+                <CheckCircle2 size={17} className="icon-shrink" />
                 <span>{success}</span>
               </div>
             )}
 
-            <form onSubmit={handleSaveCompany} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <form onSubmit={handleSaveCompany} className="stack-md">
               <div className="form-grid-2">
                 <div className="field">
                   <label htmlFor="comp-name" className="field-label">
@@ -347,14 +353,20 @@ export function CompanyProfilePage() {
                   <label htmlFor="comp-state" className="field-label">
                     Estado (UF)
                   </label>
-                  <input
+                  <select
                     id="comp-state"
-                    className="input"
+                    className="select"
                     value={stateUf}
                     onChange={(e) => setStateUf(e.target.value)}
-                    maxLength={50}
                     disabled={!isAdmin}
-                  />
+                  >
+                    <option value="">Selecionar UF</option>
+                    {BRAZIL_STATES.map((uf) => (
+                      <option key={uf} value={uf}>
+                        {uf}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
 
@@ -387,7 +399,7 @@ export function CompanyProfilePage() {
               </div>
 
               {isAdmin && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 6 }}>
+                <div className="row-between" style={{ justifyContent: 'flex-end', marginTop: 6 }}>
                   <button type="submit" className="btn btn-primary" disabled={isSavingProfile}>
                     {isSavingProfile ? 'Salvando...' : 'Salvar alterações'}
                   </button>
@@ -398,81 +410,51 @@ export function CompanyProfilePage() {
 
           {/* Equipe de recrutamento */}
           <aside className="panel-surface">
-            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <Users size={20} color="#393be7" />
-              <h2 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Equipe de recrutamento</h2>
+            <div className="row-inline">
+              <Users size={20} className="icon-primary" />
+              <h2 className="job-row-title">Equipe de recrutamento</h2>
             </div>
-            <p style={{ marginTop: 6, fontSize: '0.86rem', color: 'var(--color-text-secondary)' }}>
-              Recrutadores vinculados ao mesmo CNPJ compartilham vagas, triagem no swipe e chats.
+            <p className="text-muted text-sm" style={{ marginTop: 6 }}>
+              Recrutadores vinculados ao mesmo CNPJ compartilham vagas, triagem e conversas.
             </p>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 18 }}>
+            <div className="stack-sm" style={{ marginTop: 18 }}>
               {members.map((member) => (
-                <div
-                  key={member.userId}
-                  style={{
-                    padding: '12px 14px',
-                    borderRadius: 12,
-                    backgroundColor: 'var(--color-bg)',
-                    border: '1px solid var(--color-border)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 10,
-                  }}
-                >
-                  <div style={{ minWidth: 0 }}>
-                    <div
-                      style={{
-                        fontWeight: 600,
-                        fontSize: '0.88rem',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                      }}
-                    >
-                      {member.email}
-                    </div>
-                    <div style={{ fontSize: '0.76rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+                <div key={member.userId} className="member-row">
+                  <div className="min-w-0">
+                    <div className="sidebar-company-name truncate">{member.email}</div>
+                    <div className="text-xs text-muted" style={{ marginTop: 2 }}>
                       Desde {formatDateTime(member.createdAt)}
                     </div>
                   </div>
                   <span
-                    className={`badge ${member.companyRole === 'ADMIN' ? 'badge-indigo' : 'badge-neutral'}`}
+                    className={`badge ${
+                      member.companyRole === 'ADMIN' ? 'badge-indigo' : 'badge-neutral'
+                    }`}
                   >
-                    {member.companyRole}
+                    {formatCompanyRole(member.companyRole)}
                   </span>
                 </div>
               ))}
             </div>
 
             {isAdmin && (
-              <form
-                onSubmit={handleAddMember}
-                style={{
-                  marginTop: 22,
-                  paddingTop: 20,
-                  borderTop: '1px solid var(--color-border)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12,
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontWeight: 700 }}>
-                  <UserPlus size={17} color="#393be7" />
+              <form onSubmit={handleAddMember} className="member-add-form">
+                <div className="row-inline form-section-title">
+                  <UserPlus size={17} className="icon-primary" />
                   Adicionar novo membro
                 </div>
 
                 {memberError && (
-                  <div className="alert alert-error" role="alert">
-                    <AlertCircle size={16} />
+                  <div className="alert alert-error alert-compact" role="alert">
+                    <AlertCircle size={16} className="icon-shrink" />
                     <span>{memberError}</span>
                   </div>
                 )}
 
                 {memberSuccess && (
-                  <div className="alert alert-success">
-                    <CheckCircle2 size={16} />
+                  <div className="alert alert-success alert-compact">
+                    <CheckCircle2 size={16} className="icon-shrink" />
                     <span>{memberSuccess}</span>
                   </div>
                 )}
@@ -515,8 +497,8 @@ export function CompanyProfilePage() {
                     value={memberRole}
                     onChange={(e) => setMemberRole(e.target.value as CompanyRole)}
                   >
-                    <option value="RECRUITER">RECRUITER (Vagas, Swipe e Chat)</option>
-                    <option value="ADMIN">ADMIN (Controle total da conta)</option>
+                    <option value="RECRUITER">Recrutador (Vagas, triagem e chat)</option>
+                    <option value="ADMIN">Administrador (Controle total da conta)</option>
                   </select>
                 </div>
 

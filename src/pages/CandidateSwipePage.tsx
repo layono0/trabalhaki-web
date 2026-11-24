@@ -74,7 +74,9 @@ export function CandidateSwipePage() {
       const list = await api.getJobApplicants(jobId);
       setApplicants(list);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Não foi possível carregar os candidatos interessados.');
+      setError(
+        err instanceof Error ? err.message : 'Não foi possível carregar os candidatos interessados.'
+      );
     } finally {
       setIsLoadingApplicants(false);
     }
@@ -103,7 +105,6 @@ export function CandidateSwipePage() {
       setError(null);
       setNotice(null);
 
-      // Optimistic removal for snappy card stack transition
       setApplicants((prev) => prev.filter((item) => item.candidateId !== applicant.candidateId));
 
       try {
@@ -136,7 +137,6 @@ export function CandidateSwipePage() {
           }
         }
       } catch (err) {
-        // Restore card on failure
         setApplicants((prev) =>
           prev.some((item) => item.candidateId === applicant.candidateId) ? prev : [applicant, ...prev]
         );
@@ -208,21 +208,20 @@ export function CandidateSwipePage() {
     <div>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Swipe de Candidatos</h1>
+          <h1 className="page-title">Triagem de Candidatos</h1>
           <p className="page-subtitle">
             Avalie apenas profissionais que já curtiram a vaga selecionada no aplicativo mobile.
           </p>
         </div>
 
         {jobs.length > 0 && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
+          <div className="row-wrap">
             <label htmlFor="swipe-job-select" className="sr-only">
               Selecionar vaga para triagem
             </label>
             <select
               id="swipe-job-select"
-              className="select"
-              style={{ minWidth: 300 }}
+              className="select swipe-job-select"
               value={selectedJobId ?? ''}
               onChange={(e) => handleSelectJob(Number(e.target.value))}
             >
@@ -247,30 +246,39 @@ export function CandidateSwipePage() {
       </div>
 
       {notice && (
-        <div className="alert alert-success" style={{ marginBottom: 18 }}>
-          <CheckCircle2 size={18} />
+        <div className="alert alert-success">
+          <CheckCircle2 size={18} className="icon-shrink" />
           <span>{notice}</span>
         </div>
       )}
 
       {error && (
-        <div className="alert alert-error" role="alert" style={{ marginBottom: 18 }}>
-          <AlertCircle size={18} />
+        <div className="alert alert-error" role="alert">
+          <AlertCircle size={18} className="icon-shrink" />
           <span>{error}</span>
         </div>
       )}
 
       {isLoadingJobs ? (
-        <div className="empty-state">
-          <p style={{ color: 'var(--color-text-secondary)' }}>Carregando suas vagas...</p>
+        <div className="swipe-layout" aria-busy="true" aria-label="Carregando triagem">
+          <div className="skeleton-card" style={{ height: 480 }}>
+            <div className="skeleton skeleton-title" />
+            <div className="skeleton skeleton-line" />
+            <div className="skeleton skeleton-line" style={{ width: '80%' }} />
+          </div>
+          <div className="skeleton-card" style={{ height: 240 }}>
+            <div className="skeleton skeleton-pill" />
+            <div className="skeleton skeleton-title" />
+            <div className="skeleton skeleton-line" />
+          </div>
         </div>
       ) : jobs.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">
             <Briefcase size={24} />
           </div>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Crie uma vaga antes de iniciar o swipe</h2>
-          <p style={{ maxWidth: 440, color: 'var(--color-text-secondary)', fontSize: '0.92rem' }}>
+          <h2 className="drawer-title">Crie uma vaga antes de iniciar a triagem</h2>
+          <p className="text-muted text-sm" style={{ maxWidth: 440 }}>
             Assim que sua empresa tiver uma vaga ativa, os candidatos interessados aparecerão aqui
             ordenados por compatibilidade.
           </p>
@@ -282,25 +290,37 @@ export function CandidateSwipePage() {
         <div className="swipe-layout">
           <div>
             {isLoadingApplicants ? (
-              <div className="empty-state" style={{ height: 550, justifyContent: 'center' }}>
-                <p style={{ color: 'var(--color-text-secondary)' }}>
-                  Carregando fila de candidatos que se candidataram...
-                </p>
+              <div
+                className="skeleton-card"
+                style={{ height: 550 }}
+                aria-busy="true"
+                aria-label="Carregando candidatos"
+              >
+                <div className="row-between">
+                  <div className="skeleton skeleton-title" />
+                  <div className="skeleton skeleton-pill" />
+                </div>
+                <div className="row-wrap">
+                  <div className="skeleton skeleton-pill" />
+                  <div className="skeleton skeleton-pill" />
+                  <div className="skeleton skeleton-pill" />
+                </div>
+                <div className="skeleton skeleton-line" />
+                <div className="skeleton skeleton-line" style={{ width: '85%' }} />
+                <div className="skeleton skeleton-line" style={{ width: '70%' }} />
               </div>
             ) : applicants.length === 0 ? (
               <div className="empty-state" style={{ minHeight: 440, justifyContent: 'center' }}>
                 <div className="empty-state-icon">
                   <Users size={24} />
                 </div>
-                <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                  Nenhum candidato pendente nesta vaga
-                </h2>
-                <p style={{ maxWidth: 400, color: 'var(--color-text-secondary)', fontSize: '0.92rem' }}>
+                <h2 className="drawer-title">Nenhum candidato pendente nesta vaga</h2>
+                <p className="text-muted text-sm" style={{ maxWidth: 400 }}>
                   {selectedJob?.status === 'CLOSED'
                     ? 'Esta vaga está encerrada. Selecione outra vaga ativa no topo.'
                     : 'Você já avaliou todos os profissionais que curtiram esta vaga até o momento.'}
                 </p>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, justifyContent: 'center', marginTop: 6 }}>
+                <div className="row-wrap" style={{ justifyContent: 'center', marginTop: 6 }}>
                   {lastPassed && (
                     <button type="button" className="btn btn-secondary" onClick={handleUndoPass}>
                       <Undo2 size={16} />
@@ -340,8 +360,9 @@ export function CandidateSwipePage() {
                 <div className="swipe-actions-bar">
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-secondary btn-icon"
                     title="Desfazer último descarte (Ctrl+Z)"
+                    aria-label="Desfazer último descarte"
                     disabled={!lastPassed || isSubmitting}
                     onClick={handleUndoPass}
                   >
@@ -350,8 +371,7 @@ export function CandidateSwipePage() {
 
                   <button
                     type="button"
-                    className="btn btn-secondary"
-                    style={{ flex: 1 }}
+                    className="btn btn-secondary flex-1"
                     disabled={isSubmitting || selectedJob?.status === 'CLOSED'}
                     onClick={() => handleSwipe(applicants[0], 'left')}
                   >
@@ -361,8 +381,9 @@ export function CandidateSwipePage() {
 
                   <button
                     type="button"
-                    className="btn btn-secondary"
+                    className="btn btn-secondary btn-icon"
                     title="Ver detalhes do candidato"
+                    aria-label="Ver detalhes do candidato"
                     onClick={() => setInspectingApplicant(applicants[0])}
                   >
                     <Eye size={18} />
@@ -380,67 +401,39 @@ export function CandidateSwipePage() {
                   </button>
                 </div>
 
-                <p
-                  style={{
-                    marginTop: 10,
-                    textAlign: 'center',
-                    fontSize: '0.8rem',
-                    color: 'var(--color-text-secondary)',
-                  }}
-                >
+                <p className="swipe-hint">
                   Arraste o cartão ou use ← Passar / → Tenho interesse. Como o candidato já curtiu esta
-                  vaga, sua curtida gera o Match na hora.
+                  vaga, sua curtida confirma o match na hora.
                 </p>
               </>
             )}
           </div>
 
-          {/* Painel lateral com contexto da vaga e fila */}
           {selectedJob && (
             <aside className="swipe-side-panel">
               <div>
                 <span className="badge badge-indigo">Vaga em avaliação</span>
-                <h2 style={{ fontSize: '1.15rem', fontWeight: 800, marginTop: 10 }}>
+                <h2 className="job-row-title" style={{ marginTop: 10 }}>
                   {selectedJob.title}
                 </h2>
-                <p
-                  className="tabular-nums"
-                  style={{
-                    marginTop: 6,
-                    fontSize: '0.92rem',
-                    fontWeight: 700,
-                    color: 'var(--color-secondary-text)',
-                  }}
-                >
+                <p className="tabular-nums job-row-salary text-sm" style={{ marginTop: 6 }}>
                   {formatSalaryRange(selectedJob.minimumSalary, selectedJob.maximumSalary)}
                 </p>
-                <p style={{ marginTop: 4, fontSize: '0.84rem', color: 'var(--color-text-secondary)' }}>
-                  {formatModality(selectedJob.modality)} • {selectedJob.contractType} •{' '}
+                <p className="text-muted text-xs" style={{ marginTop: 4 }}>
+                  {formatModality(selectedJob.modality)} · {selectedJob.contractType} ·{' '}
                   {selectedJob.seniorityLevel}
                 </p>
               </div>
 
-              <div
-                style={{
-                  padding: 12,
-                  borderRadius: 12,
-                  backgroundColor: 'var(--color-surface-muted)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  fontSize: '0.86rem',
-                }}
-              >
+              <div className="swipe-queue-stat">
                 <span>Na fila agora</span>
                 <strong className="tabular-nums">{applicants.length} candidato(s)</strong>
               </div>
 
               {selectedJob.skills.length > 0 && (
-                <div>
-                  <div style={{ fontSize: '0.82rem', fontWeight: 700, marginBottom: 8 }}>
-                    Requisitos buscados
-                  </div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                <div className="stack-xs">
+                  <div className="field-label">Requisitos buscados</div>
+                  <div className="row-wrap">
                     {selectedJob.skills.map((s) => (
                       <span
                         key={s.skillName}

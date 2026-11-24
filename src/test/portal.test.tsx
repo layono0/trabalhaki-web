@@ -137,8 +137,9 @@ describe('Trabalhaki Empresas Web Portal', () => {
     await user.click(screen.getByRole('button', { name: /Tenho interesse/i }));
     expect(screen.getByText(/Match confirmado com Ana Clara Costa/i)).toBeInTheDocument();
 
-    // Navigate to company login
-    await user.click(screen.getByRole('link', { name: /^Acessar Painel$/i }));
+    // Navigate to company login (unified "Entrar" CTA)
+    const loginLinks = screen.getAllByRole('link', { name: /^Entrar$/i });
+    await user.click(loginLinks[0]);
     expect(screen.getByRole('heading', { name: /Acesso da Empresa/i })).toBeInTheDocument();
   });
 
@@ -497,5 +498,53 @@ describe('Trabalhaki Empresas Web Portal', () => {
     await user.click(screen.getByRole('button', { name: /Adicionar à equipe/i }));
 
     expect(await screen.findByText('recrutador@techcorp.com.br')).toBeInTheDocument();
+    // UF is rendered as a native <select> combobox
+    expect(screen.getByLabelText(/Estado \(UF\)/i).tagName).toBe('SELECT');
+  });
+
+  it('supports Escape close on drawers and accessible labels on icon buttons', async () => {
+    const user = userEvent.setup();
+    localStorage.setItem('trabalhaki_access_token', 'comp-jwt');
+    localStorage.setItem('trabalhaki_refresh_token', 'comp-ref');
+    localStorage.setItem(
+      'trabalhaki_user',
+      JSON.stringify({
+        id: 1,
+        email: 'empresa@trabalhaki.com',
+        role: 'COMPANY',
+        companyRole: 'ADMIN',
+        companyId: 1,
+      })
+    );
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/auth/me')) {
+        return jsonResponse({
+          id: 1,
+          email: 'empresa@trabalhaki.com',
+          role: 'COMPANY',
+          companyRole: 'ADMIN',
+          companyId: 1,
+        });
+      }
+      if (url.endsWith('/companies/me')) return jsonResponse(mockCompany);
+      if (url.endsWith('/jobs/my')) return jsonResponse(mockJobs);
+      if (url.endsWith('/matches')) return jsonResponse([]);
+      return jsonResponse({});
+    });
+
+    renderWithRoute('/painel/vagas');
+    expect(await screen.findByText('Desenvolvedor Java Backend Pleno')).toBeInTheDocument();
+
+    const trigger = screen.getByRole('button', { name: /Nova Vaga/i });
+    await user.click(trigger);
+
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Adicionar competência' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Adicionar benefício' })).toBeInTheDocument();
+
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 });

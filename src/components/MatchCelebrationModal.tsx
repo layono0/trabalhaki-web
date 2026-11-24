@@ -1,7 +1,8 @@
-import { MessageSquare, Sparkles } from 'lucide-react';
+import { CheckCircle2, MessageSquare, X } from 'lucide-react';
 import type { JobApplicantResponse, JobResponse } from '../types/api';
 import { resolveAssetUrl } from '../services/api';
-import { getInitials } from '../utils/formatters';
+import { formatSalaryRange, getInitials } from '../utils/formatters';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface MatchCelebrationModalProps {
   applicant: JobApplicantResponse | null;
@@ -18,75 +19,100 @@ export function MatchCelebrationModal({
   onContinue,
   onStartChat,
 }: MatchCelebrationModalProps) {
+  const { containerRef, handleBackdropClick } = useDialogA11y({
+    open: Boolean(applicant),
+    onClose: onContinue,
+  });
+
   if (!applicant) return null;
   const candidatePhoto = resolveAssetUrl(applicant.photoUrl);
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="match-modal-title">
-      <div className="modal-card">
-        <div
-          style={{
-            width: 56,
-            height: 56,
-            margin: '0 auto 14px',
-            borderRadius: 18,
-            backgroundColor: 'var(--color-secondary-soft)',
-            color: 'var(--color-secondary-text)',
-            display: 'grid',
-            placeItems: 'center',
-          }}
-        >
-          <Sparkles size={26} />
-        </div>
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="match-modal-title"
+      onClick={handleBackdropClick}
+    >
+      <div ref={containerRef} tabIndex={-1} className="modal-card match-modal-card">
+        <div className="match-stage">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm match-stage-close"
+            onClick={onContinue}
+            aria-label="Fechar"
+          >
+            <X size={18} />
+          </button>
 
-        <h2 id="match-modal-title" style={{ fontSize: '1.65rem', fontWeight: 800 }}>
-          Match confirmado!
-        </h2>
-        <p style={{ marginTop: 8, color: 'var(--color-text-secondary)', fontSize: '0.94rem' }}>
-          Você e <strong>{applicant.name}</strong> demonstraram interesse recíproco para a vaga{' '}
-          <strong>{job?.title}</strong>.
-        </p>
+          <span className="match-stage-pill">
+            <CheckCircle2 size={14} />
+            Match confirmado
+          </span>
 
-        <div
-          style={{
-            marginTop: 20,
-            padding: 16,
-            borderRadius: 16,
-            backgroundColor: 'var(--color-bg)',
-            border: '1px solid var(--color-border)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: 14,
-          }}
-        >
-          <div className="avatar-badge" style={{ width: 52, height: 52 }}>
-            {candidatePhoto ? <img src={candidatePhoto} alt={applicant.name} /> : getInitials(applicant.name)}
-          </div>
-          <div style={{ textAlign: 'left' }}>
-            <div style={{ fontWeight: 700 }}>{applicant.name}</div>
-            <div style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary)' }}>
-              {applicant.desiredRole || 'Candidato'} • {applicant.compatibilityScore}% compatível
+          <div className="match-cards-meet" aria-hidden="true">
+            <div className="match-mini-card match-mini-card-candidate">
+              <div className="row-inline">
+                <div className="avatar-badge avatar-sm">
+                  {candidatePhoto ? (
+                    <img src={candidatePhoto} alt="" />
+                  ) : (
+                    getInitials(applicant.name)
+                  )}
+                </div>
+                <span className="match-mini-card-kicker tabular-nums">
+                  {applicant.compatibilityScore}% match
+                </span>
+              </div>
+              <div className="match-mini-card-title truncate">{applicant.name}</div>
+              <div className="match-mini-card-sub truncate">
+                {applicant.desiredRole || 'Candidato'}
+              </div>
+            </div>
+
+            <div className="match-seal-bridge">
+              <CheckCircle2 size={22} strokeWidth={2.5} />
+            </div>
+
+            <div className="match-mini-card match-mini-card-job">
+              <div className="match-mini-card-kicker">Vaga</div>
+              <div className="match-mini-card-title truncate">
+                {job?.title || 'Oportunidade'}
+              </div>
+              <div className="match-mini-card-sub truncate tabular-nums">
+                {job ? formatSalaryRange(job.minimumSalary, job.maximumSalary) : 'Interesse mútuo'}
+              </div>
             </div>
           </div>
         </div>
 
-        <p style={{ marginTop: 14, fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-          No Trabalhaki, a empresa envia a primeira mensagem no chat pós-match.
-        </p>
+        <div className="match-modal-body">
+          <h2 id="match-modal-title" className="match-modal-title">
+            Match confirmado!
+          </h2>
+          <p className="match-modal-lead">
+            Você e <strong>{applicant.name}</strong> demonstraram interesse recíproco para a vaga{' '}
+            <strong>{job?.title}</strong>.
+          </p>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 22 }}>
-          <button
-            type="button"
-            className="btn btn-primary btn-lg"
-            onClick={() => onStartChat(matchId)}
-          >
-            <MessageSquare size={18} />
-            Iniciar conversa agora
-          </button>
-          <button type="button" className="btn btn-secondary" onClick={onContinue}>
-            Continuar avaliando candidatos
-          </button>
+          <p className="match-modal-rule">
+            No Trabalhaki, a empresa envia a primeira mensagem para abrir a conversa no chat.
+          </p>
+
+          <div className="match-modal-actions">
+            <button
+              type="button"
+              className="btn btn-primary btn-lg"
+              onClick={() => onStartChat(matchId)}
+            >
+              <MessageSquare size={18} />
+              Iniciar conversa agora
+            </button>
+            <button type="button" className="btn btn-secondary" onClick={onContinue}>
+              Continuar avaliando candidatos
+            </button>
+          </div>
         </div>
       </div>
     </div>

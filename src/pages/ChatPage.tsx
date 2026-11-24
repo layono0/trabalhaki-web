@@ -3,13 +3,13 @@ import type { FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import {
   AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
   ClipboardList,
-  Flame,
   MessageSquare,
   RefreshCw,
   Search,
   Send,
-  Sparkles,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
@@ -19,6 +19,7 @@ import type {
   MatchResponse,
   ProcessStatus,
   SelectionProcessResponse,
+  WorkModality,
 } from '../types/api';
 import {
   formatCurrency,
@@ -29,6 +30,8 @@ import {
   formatTimeOnly,
   getInitials,
 } from '../utils/formatters';
+import { TriageIcon } from '../components/BrandMark';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 interface CandidateSnapshot {
   name?: string;
@@ -39,7 +42,7 @@ interface CandidateSnapshot {
   city?: string;
   state?: string;
   minimumSalaryExpectation?: number;
-  preferredModality?: string;
+  preferredModality?: WorkModality;
   preferredContractType?: string;
   skills?: string[];
 }
@@ -50,7 +53,7 @@ interface JobSnapshot {
     title?: string;
     minimumSalary?: number;
     maximumSalary?: number;
-    modality?: string;
+    modality?: WorkModality;
     contractType?: string;
     seniorityLevel?: string;
   };
@@ -70,6 +73,9 @@ export function ChatPage() {
 
   const [matches, setMatches] = useState<MatchResponse[]>([]);
   const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
+  const [mobileView, setMobileView] = useState<'list' | 'thread'>(
+    routeMatchId ? 'thread' : 'list'
+  );
   const [searchTerm, setSearchTerm] = useState('');
   const [jobFilter, setJobFilter] = useState<string>('ALL');
 
@@ -92,6 +98,12 @@ export function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const isFetchingRef = useRef(false);
 
+  const { containerRef: processDrawerRef, handleBackdropClick: handleProcessBackdrop } =
+    useDialogA11y({
+      open: processDrawerOpen,
+      onClose: () => setProcessDrawerOpen(false),
+    });
+
   const loadMatches = useCallback(async () => {
     setIsLoadingMatches(true);
     setError(null);
@@ -104,6 +116,7 @@ export function ChatPage() {
       const requestedId = routeMatchId ? Number(routeMatchId) : null;
       if (requestedId && sorted.some((m) => m.id === requestedId)) {
         setSelectedMatchId(requestedId);
+        setMobileView('thread');
       } else if (sorted.length > 0) {
         setSelectedMatchId((prev) =>
           prev && sorted.some((m) => m.id === prev) ? prev : sorted[0].id
@@ -150,32 +163,29 @@ export function ChatPage() {
     });
   }, [matches, jobFilter, searchTerm]);
 
-  const loadConversation = useCallback(
-    async (matchId: number, silent = false) => {
-      if (isFetchingRef.current) return;
-      isFetchingRef.current = true;
+  const loadConversation = useCallback(async (matchId: number, silent = false) => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+    if (!silent) {
+      setIsLoadingChat(true);
+      setChatError(null);
+    }
+    try {
+      const conv = await api.getConversation(matchId);
+      setMessages(conv.messages || []);
+      setChatError(null);
       if (!silent) {
-        setIsLoadingChat(true);
-        setChatError(null);
+        setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 60);
       }
-      try {
-        const conv = await api.getConversation(matchId);
-        setMessages(conv.messages || []);
-        setChatError(null);
-        if (!silent) {
-          setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 60);
-        }
-      } catch (err) {
-        if (!silent) {
-          setChatError(err instanceof Error ? err.message : 'Não foi possível carregar as mensagens.');
-        }
-      } finally {
-        isFetchingRef.current = false;
-        if (!silent) setIsLoadingChat(false);
+    } catch (err) {
+      if (!silent) {
+        setChatError(err instanceof Error ? err.message : 'Não foi possível carregar as mensagens.');
       }
-    },
-    []
-  );
+    } finally {
+      isFetchingRef.current = false;
+      if (!silent) setIsLoadingChat(false);
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedMatchId === null) return;
@@ -306,50 +316,60 @@ export function ChatPage() {
       </div>
 
       {error && (
-        <div className="alert alert-error" role="alert" style={{ marginBottom: 18 }}>
-          <AlertCircle size={18} />
+        <div className="alert alert-error" role="alert">
+          <AlertCircle size={18} className="icon-shrink" />
           <span>{error}</span>
         </div>
       )}
 
       {isLoadingMatches ? (
-        <div className="empty-state">
-          <p style={{ color: 'var(--color-text-secondary)' }}>Carregando conversas...</p>
+        <div className="chat-shell" aria-busy="true" aria-label="Carregando conversas">
+          <div className="chat-list-pane" style={{ padding: 16 }}>
+            <div className="stack-md">
+              {[1, 2, 3, 4].map((idx) => (
+                <div key={idx} className="stack-xs">
+                  <div className="skeleton skeleton-title" />
+                  <div className="skeleton skeleton-line" style={{ width: '75%' }} />
+                </div>
+              ))}
+            </div>
+          </div>
+          <div className="chat-thread-pane" style={{ padding: 24 }}>
+            <div className="stack-md">
+              <div className="skeleton skeleton-title" style={{ width: '40%' }} />
+              <div className="skeleton skeleton-line" style={{ width: '65%' }} />
+              <div className="skeleton skeleton-line" style={{ width: '50%' }} />
+            </div>
+          </div>
         </div>
       ) : matches.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">
             <MessageSquare size={24} />
           </div>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 700 }}>Nenhum match confirmado ainda</h2>
-          <p style={{ maxWidth: 440, color: 'var(--color-text-secondary)', fontSize: '0.92rem' }}>
-            Acesse o Swipe de Candidatos para avaliar os profissionais que se candidataram às suas
+          <h2 className="drawer-title">Nenhum match confirmado ainda</h2>
+          <p className="text-muted text-sm" style={{ maxWidth: 440 }}>
+            Acesse a Triagem de Candidatos para avaliar os profissionais que se candidataram às suas
             vagas. Ao curtir um interessado, o match e o canal de conversa abrem aqui automaticamente.
           </p>
           <Link to="/painel/swipe" className="btn btn-primary">
-            <Flame size={17} />
-            Ir para o Swipe de Candidatos
+            <TriageIcon size={17} />
+            Ir para Triagem de Candidatos
           </Link>
         </div>
       ) : (
-        <div className="chat-shell">
+        <div
+          className={`chat-shell ${
+            mobileView === 'thread' && selectedMatch ? 'mobile-show-thread' : 'mobile-show-list'
+          }`}
+        >
           {/* Coluna esquerda: lista de matches */}
           <aside className="chat-list-pane" aria-label="Lista de matches">
             <div className="chat-list-header">
-              <div style={{ position: 'relative' }}>
-                <Search
-                  size={15}
-                  style={{
-                    position: 'absolute',
-                    left: 11,
-                    top: '50%',
-                    transform: 'translateY(-50%)',
-                    color: 'var(--color-text-secondary)',
-                  }}
-                />
+              <div className="input-wrap">
+                <Search size={15} className="input-leading-icon" />
                 <input
-                  className="input"
-                  style={{ paddingLeft: 34, minHeight: 38, fontSize: '0.88rem' }}
+                  className="input input-compact input-with-icon"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   placeholder="Buscar candidato ou vaga..."
@@ -359,8 +379,7 @@ export function ChatPage() {
 
               {uniqueJobs.length > 1 && (
                 <select
-                  className="select"
-                  style={{ minHeight: 36, fontSize: '0.84rem' }}
+                  className="select select-compact"
                   value={jobFilter}
                   onChange={(e) => setJobFilter(e.target.value)}
                   aria-label="Filtrar por vaga"
@@ -377,7 +396,7 @@ export function ChatPage() {
 
             <div className="chat-list-scroll">
               {filteredMatches.length === 0 ? (
-                <div style={{ padding: 20, fontSize: '0.88rem', color: 'var(--color-text-secondary)' }}>
+                <div className="text-muted text-sm" style={{ padding: 20 }}>
                   Nenhum match encontrado para o filtro aplicado.
                 </div>
               ) : (
@@ -402,61 +421,29 @@ export function ChatPage() {
                       className={`chat-match-item ${match.id === selectedMatchId ? 'active' : ''}`}
                       onClick={() => {
                         setSelectedMatchId(match.id);
+                        setMobileView('thread');
                         navigate(`/painel/chat/${match.id}`, { replace: true });
                       }}
                     >
-                      <div className="avatar-badge" style={{ width: 44, height: 44, fontSize: '0.85rem' }}>
+                      <div className="avatar-badge avatar-sm">
                         {photoSrc ? (
                           <img src={photoSrc} alt={match.candidateName} />
                         ) : (
                           getInitials(match.candidateName)
                         )}
                       </div>
-                      <div style={{ minWidth: 0, flex: 1 }}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            justifyContent: 'space-between',
-                            alignItems: 'center',
-                            gap: 6,
-                          }}
-                        >
-                          <span
-                            style={{
-                              fontWeight: 700,
-                              fontSize: '0.92rem',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                            }}
-                          >
-                            {match.candidateName}
-                          </span>
+                      <div className="min-w-0 flex-1">
+                        <div className="row-between">
+                          <span className="chat-match-name truncate">{match.candidateName}</span>
                           {match.compatibilityScore != null && (
-                            <span
-                              className="tabular-nums"
-                              style={{ fontSize: '0.76rem', fontWeight: 700, color: 'var(--color-primary)' }}
-                            >
+                            <span className="tabular-nums chat-match-score">
                               {match.compatibilityScore}%
                             </span>
                           )}
                         </div>
-                        <div
-                          style={{
-                            fontSize: '0.8rem',
-                            color: 'var(--color-text-secondary)',
-                            whiteSpace: 'nowrap',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            marginTop: 2,
-                          }}
-                        >
-                          {match.jobTitle}
-                        </div>
+                        <div className="chat-match-job truncate">{match.jobTitle}</div>
                         <div style={{ marginTop: 6 }}>
-                          <span className={`badge ${stageClass}`} style={{ fontSize: '0.7rem', padding: '2px 8px' }}>
-                            {stage.label}
-                          </span>
+                          <span className={`badge badge-xs ${stageClass}`}>{stage.label}</span>
                         </div>
                       </div>
                     </button>
@@ -471,8 +458,17 @@ export function ChatPage() {
             {selectedMatch ? (
               <>
                 <div className="chat-thread-header">
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div className="avatar-badge" style={{ width: 42, height: 42, fontSize: '0.85rem' }}>
+                  <div className="demo-avatar-group min-w-0">
+                    <button
+                      type="button"
+                      className="btn btn-ghost btn-sm chat-mobile-back"
+                      onClick={() => setMobileView('list')}
+                      aria-label="Voltar para lista de matches"
+                    >
+                      <ArrowLeft size={16} />
+                      Lista
+                    </button>
+                    <div className="avatar-badge avatar-sm">
                       {resolveAssetUrl(selectedMatch.candidatePhotoUrl) ? (
                         <img
                           src={resolveAssetUrl(selectedMatch.candidatePhotoUrl)}
@@ -482,24 +478,24 @@ export function ChatPage() {
                         getInitials(selectedMatch.candidateName)
                       )}
                     </div>
-                    <div>
-                      <div style={{ fontWeight: 800, fontSize: '1rem' }}>
+                    <div className="min-w-0">
+                      <div className="demo-candidate-name truncate">
                         {selectedMatch.candidateName}
                       </div>
-                      <div style={{ fontSize: '0.82rem', color: 'var(--color-text-secondary)' }}>
-                        {selectedMatch.jobTitle} • Match em {formatDateTime(selectedMatch.createdAt)}
+                      <div className="text-xs text-muted truncate">
+                        {selectedMatch.jobTitle} · Match em {formatDateTime(selectedMatch.createdAt)}
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <div className="row-wrap">
                     <button
                       type="button"
                       className="btn btn-secondary btn-sm"
                       onClick={openProcessDrawer}
                     >
                       <ClipboardList size={15} />
-                      Snapshot & Etapas
+                      Etapas e perfil
                     </button>
                     <button
                       type="button"
@@ -514,47 +510,30 @@ export function ChatPage() {
 
                 <div className="chat-messages-scroll">
                   {isLoadingChat ? (
-                    <p style={{ color: 'var(--color-text-secondary)', margin: 'auto' }}>
-                      Carregando histórico da conversa...
-                    </p>
+                    <div className="stack-md" aria-busy="true" aria-label="Carregando mensagens">
+                      <div className="skeleton skeleton-line" style={{ width: '52%' }} />
+                      <div className="skeleton skeleton-line" style={{ width: '40%', alignSelf: 'flex-end' }} />
+                      <div className="skeleton skeleton-line" style={{ width: '60%' }} />
+                    </div>
                   ) : messages.length === 0 ? (
-                    <div
-                      style={{
-                        margin: 'auto',
-                        maxWidth: 500,
-                        textAlign: 'center',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: 12,
-                      }}
-                    >
+                    <div className="chat-starter-wrap">
                       <div className="empty-state-icon">
-                        <Sparkles size={22} />
+                        <CheckCircle2 size={22} />
                       </div>
-                      <h3 style={{ fontSize: '1.1rem', fontWeight: 800 }}>
+                      <h3 className="job-row-title">
                         Envie a primeira mensagem para {selectedMatch.candidateName}
                       </h3>
-                      <p style={{ fontSize: '0.88rem', color: 'var(--color-text-secondary)' }}>
+                      <p className="text-sm text-muted">
                         No Trabalhaki, a empresa inicia a conversa após o match para liberar a
                         resposta do candidato no aplicativo mobile.
                       </p>
 
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 8, width: '100%', marginTop: 6 }}>
+                      <div className="stack-xs w-full" style={{ marginTop: 6 }}>
                         {starterTemplates.map((template) => (
                           <button
                             key={template}
                             type="button"
-                            className="btn btn-secondary btn-sm"
-                            style={{
-                              height: 'auto',
-                              minHeight: 40,
-                              padding: '10px 14px',
-                              textAlign: 'left',
-                              justifyContent: 'flex-start',
-                              whiteSpace: 'normal',
-                              fontWeight: 500,
-                            }}
+                            className="btn btn-secondary btn-sm chat-starter-btn"
                             onClick={() => updateDraft(template)}
                           >
                             {template}
@@ -571,15 +550,8 @@ export function ChatPage() {
                       return (
                         <div key={msg.id} className={`chat-bubble-row ${isCompany ? 'me' : 'them'}`}>
                           <div className="chat-bubble">{msg.content}</div>
-                          <span
-                            className="tabular-nums"
-                            style={{
-                              marginTop: 4,
-                              fontSize: '0.72rem',
-                              color: 'var(--color-text-secondary)',
-                            }}
-                          >
-                            {msg.senderName} • {formatTimeOnly(msg.createdAt)}
+                          <span className="tabular-nums chat-bubble-meta">
+                            {msg.senderName} · {formatTimeOnly(msg.createdAt)}
                           </span>
                         </div>
                       );
@@ -590,15 +562,14 @@ export function ChatPage() {
 
                 {chatError && (
                   <div className="alert alert-error" style={{ margin: '0 16px 10px' }}>
-                    <AlertCircle size={16} />
+                    <AlertCircle size={16} className="icon-shrink" />
                     <span>{chatError}</span>
                   </div>
                 )}
 
                 <form className="chat-compose-bar" onSubmit={handleSendMessage}>
                   <textarea
-                    className="textarea"
-                    style={{ minHeight: 46, maxHeight: 130, resize: 'none', padding: '11px 14px' }}
+                    className="textarea chat-compose-input"
                     rows={1}
                     value={currentDraft}
                     onChange={(e) => updateDraft(e.target.value)}
@@ -623,7 +594,7 @@ export function ChatPage() {
                 </form>
               </>
             ) : (
-              <div style={{ margin: 'auto', padding: 24, color: 'var(--color-text-secondary)' }}>
+              <div className="text-muted text-sm" style={{ margin: 'auto', padding: 24 }}>
                 Selecione um match à esquerda para visualizar a conversa.
               </div>
             )}
@@ -631,22 +602,23 @@ export function ChatPage() {
         </div>
       )}
 
-      {/* Drawer de Snapshot do Match & Evolução de Etapa */}
+      {/* Drawer de Etapas do Processo & Dados do Match */}
       {processDrawerOpen && selectedMatch && (
         <div
           className="overlay-backdrop"
           role="dialog"
           aria-modal="true"
           aria-labelledby="process-drawer-title"
+          onClick={handleProcessBackdrop}
         >
-          <div className="drawer-panel">
+          <div ref={processDrawerRef} tabIndex={-1} className="drawer-panel">
             <div className="drawer-header">
               <div>
-                <h2 id="process-drawer-title" style={{ fontSize: '1.2rem', fontWeight: 800 }}>
-                  Processo Seletivo & Snapshot
+                <h2 id="process-drawer-title" className="drawer-title">
+                  Etapas e dados do match
                 </h2>
-                <p style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
-                  {selectedMatch.candidateName} • {selectedMatch.jobTitle}
+                <p className="drawer-subtitle">
+                  {selectedMatch.candidateName} · {selectedMatch.jobTitle}
                 </p>
               </div>
               <button
@@ -661,42 +633,22 @@ export function ChatPage() {
 
             <div className="drawer-body">
               {stageError && (
-                <div className="alert alert-error" role="alert">
-                  <AlertCircle size={17} />
+                <div className="alert alert-error alert-compact" role="alert">
+                  <AlertCircle size={17} className="icon-shrink" />
                   <span>{stageError}</span>
                 </div>
               )}
 
-              {/* Snapshot Imutável do Match (Candidato e Vaga) */}
               {(candidateSnapshot || jobSnapshot?.jobData) && (
-                <div
-                  style={{
-                    padding: 16,
-                    borderRadius: 14,
-                    backgroundColor: 'var(--color-surface-muted)',
-                    border: '1px solid var(--color-border)',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 12,
-                  }}
-                >
-                  <div style={{ fontSize: '0.84rem', fontWeight: 700, color: 'var(--color-primary)' }}>
-                    Snapshot congelado no momento do Match
+                <div className="chat-record-card">
+                  <div className="chat-record-heading">
+                    Dados registrados no momento do match
                   </div>
 
                   {jobSnapshot?.jobData && (
-                    <div
-                      style={{
-                        paddingBottom: 10,
-                        borderBottom: '1px solid var(--color-border)',
-                        fontSize: '0.86rem',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 4,
-                      }}
-                    >
+                    <div className="chat-record-divider stack-xs">
                       <div>
-                        <strong>Vaga (v{jobSnapshot.jobVersionAtMatch ?? 1}):</strong>{' '}
+                        <strong>Vaga:</strong>{' '}
                         {jobSnapshot.jobData.title || selectedMatch.jobTitle}
                       </div>
                       <div className="tabular-nums">
@@ -705,15 +657,16 @@ export function ChatPage() {
                           jobSnapshot.jobData.minimumSalary,
                           jobSnapshot.jobData.maximumSalary
                         )}{' '}
-                        • {formatModality(jobSnapshot.jobData.modality as any)}
+                        · {formatModality(jobSnapshot.jobData.modality)}
                       </div>
                     </div>
                   )}
 
                   {candidateSnapshot && (
-                    <div style={{ fontSize: '0.88rem', display: 'flex', flexDirection: 'column', gap: 5 }}>
+                    <div className="stack-xs text-sm">
                       <div>
-                        <strong>Cargo desejado:</strong> {candidateSnapshot.desiredRole || 'Não informado'}
+                        <strong>Cargo desejado:</strong>{' '}
+                        {candidateSnapshot.desiredRole || 'Não informado'}
                       </div>
                       <div>
                         <strong>Experiência:</strong>{' '}
@@ -726,11 +679,11 @@ export function ChatPage() {
                       </div>
                       <div>
                         <strong>Modalidade / Pretensão:</strong>{' '}
-                        {formatModality(candidateSnapshot.preferredModality as any)} •{' '}
+                        {formatModality(candidateSnapshot.preferredModality)} ·{' '}
                         {formatCurrency(candidateSnapshot.minimumSalaryExpectation)}
                       </div>
                       {candidateSnapshot.skills && candidateSnapshot.skills.length > 0 && (
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
+                        <div className="row-wrap" style={{ marginTop: 4 }}>
                           {candidateSnapshot.skills.map((skill) => (
                             <span key={skill} className="chip chip-skill">
                               {skill}
@@ -744,12 +697,16 @@ export function ChatPage() {
               )}
 
               {processLoading ? (
-                <p style={{ color: 'var(--color-text-secondary)' }}>Carregando etapas do processo...</p>
+                <div className="stack-sm" aria-busy="true">
+                  <div className="skeleton skeleton-pill" />
+                  <div className="skeleton skeleton-line" />
+                  <div className="skeleton skeleton-line" style={{ width: '75%' }} />
+                </div>
               ) : processInfo ? (
                 <>
-                  <div>
-                    <div style={{ fontSize: '0.84rem', fontWeight: 700 }}>Etapa atual</div>
-                    <div style={{ marginTop: 6 }}>
+                  <div className="stack-xs">
+                    <div className="field-label">Etapa atual</div>
+                    <div>
                       <span className="badge badge-indigo">
                         {formatProcessStatus(processInfo.currentStatus).label}
                       </span>
@@ -757,18 +714,8 @@ export function ChatPage() {
                   </div>
 
                   {processInfo.currentStatus !== 'WITHDRAWN' && (
-                    <form
-                      onSubmit={handleAdvanceProcess}
-                      style={{
-                        padding: 16,
-                        borderRadius: 14,
-                        border: '1px solid var(--color-border)',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: 12,
-                      }}
-                    >
-                      <div style={{ fontWeight: 700, fontSize: '0.92rem' }}>Avançar etapa</div>
+                    <form onSubmit={handleAdvanceProcess} className="chat-stage-form">
+                      <div className="form-section-title">Avançar etapa</div>
 
                       <div className="field">
                         <label htmlFor="process-stage-select" className="field-label">
@@ -812,29 +759,23 @@ export function ChatPage() {
                     </form>
                   )}
 
-                  <div>
-                    <div style={{ fontSize: '0.88rem', fontWeight: 700, marginBottom: 10 }}>
-                      Histórico auditável ({processInfo.history.length})
+                  <div className="stack-sm">
+                    <div className="form-section-title">
+                      Histórico de etapas ({processInfo.history.length})
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <div className="stack-sm">
                       {processInfo.history.map((entry, idx) => (
-                        <div
-                          key={`${entry.changedAt}-${idx}`}
-                          style={{
-                            padding: 12,
-                            borderRadius: 10,
-                            border: '1px solid var(--color-border)',
-                            fontSize: '0.85rem',
-                          }}
-                        >
-                          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <div key={`${entry.changedAt}-${idx}`} className="chat-history-entry">
+                          <div className="row-between">
                             <strong>{formatProcessStatus(entry.toStatus).label}</strong>
-                            <span className="tabular-nums" style={{ color: 'var(--color-text-secondary)', fontSize: '0.78rem' }}>
+                            <span className="tabular-nums text-xs text-muted">
                               {formatDateTime(entry.changedAt)}
                             </span>
                           </div>
                           {entry.note && (
-                            <p style={{ marginTop: 4, color: 'var(--color-text-secondary)' }}>{entry.note}</p>
+                            <p className="text-muted text-sm" style={{ marginTop: 4 }}>
+                              {entry.note}
+                            </p>
                           )}
                         </div>
                       ))}

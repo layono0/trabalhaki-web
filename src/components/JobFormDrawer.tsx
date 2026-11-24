@@ -2,6 +2,8 @@ import { useEffect, useState } from 'react';
 import type { FormEvent } from 'react';
 import { AlertCircle, Plus, X } from 'lucide-react';
 import type { CreateJobRequest, JobResponse, JobSkillPayload, SkillType, WorkModality } from '../types/api';
+import { BRAZIL_STATES } from '../utils/constants';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 const SUGGESTED_SKILLS = [
   'Java',
@@ -28,12 +30,6 @@ const SUGGESTED_BENEFITS = [
   'Gympass',
   'Auxílio Educação',
   'Horário Flexível',
-];
-
-const BRAZIL_STATES = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS',
-  'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC',
-  'SP', 'SE', 'TO',
 ];
 
 interface JobFormDrawerProps {
@@ -64,6 +60,13 @@ export function JobFormDrawer({ open, editingJob, onClose, onSubmit }: JobFormDr
 
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const { containerRef, handleBackdropClick } = useDialogA11y({
+    open,
+    onClose: () => {
+      if (!isSaving) onClose();
+    },
+  });
 
   useEffect(() => {
     if (!open) return;
@@ -185,357 +188,379 @@ export function JobFormDrawer({ open, editingJob, onClose, onSubmit }: JobFormDr
   };
 
   return (
-    <div className="overlay-backdrop" role="dialog" aria-modal="true" aria-labelledby="job-drawer-title">
-      <div className="drawer-panel">
+    <div
+      className="overlay-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="job-drawer-title"
+      onClick={handleBackdropClick}
+    >
+      <div ref={containerRef} tabIndex={-1} className="drawer-panel">
         <div className="drawer-header">
           <div>
-            <h2 id="job-drawer-title" style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+            <h2 id="job-drawer-title" className="drawer-title">
               {editingJob ? 'Editar vaga' : 'Publicar nova vaga'}
             </h2>
-            <p style={{ fontSize: '0.84rem', color: 'var(--color-text-secondary)', marginTop: 2 }}>
+            <p className="drawer-subtitle">
               Os critérios abaixo alimentam diretamente o cálculo de compatibilidade com os candidatos.
             </p>
           </div>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose} aria-label="Fechar painel">
+          <button
+            type="button"
+            className="btn btn-ghost btn-sm"
+            onClick={onClose}
+            aria-label="Fechar painel"
+          >
             <X size={20} />
           </button>
         </div>
 
         <form id="job-form" onSubmit={handleSubmit} className="drawer-body">
           {error && (
-            <div className="alert alert-error" role="alert">
-              <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+            <div className="alert alert-error alert-compact" role="alert">
+              <AlertCircle size={18} className="icon-shrink" />
               <span>{error}</span>
             </div>
           )}
 
-          <div className="field">
-            <label htmlFor="job-title" className="field-label">
-              Título da vaga *
-            </label>
-            <input
-              id="job-title"
-              className="input"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Ex: Pessoa Desenvolvedora Java Pleno"
-            />
-          </div>
+          {/* Seção 1: Informações principais */}
+          <fieldset className="form-section">
+            <legend className="form-section-title">1. Informações principais</legend>
+            <p className="form-section-desc">
+              Defina o cargo e os desafios para atrair profissionais alinhados.
+            </p>
 
-          <div className="field">
-            <label htmlFor="job-description" className="field-label">
-              Descrição e responsabilidades *
-            </label>
-            <textarea
-              id="job-description"
-              className="textarea"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Descreva os desafios do time, stack utilizada e o que a pessoa fará no dia a dia."
-            />
-          </div>
-
-          <div className="form-grid-2">
             <div className="field">
-              <label htmlFor="job-min-salary" className="field-label">
-                Salário mínimo (R$) *
+              <label htmlFor="job-title" className="field-label">
+                Título da vaga *
               </label>
               <input
-                id="job-min-salary"
-                type="number"
-                min={0}
-                step="100"
-                className="input tabular-nums"
-                value={minimumSalary}
-                onChange={(e) => setMinimumSalary(e.target.value)}
-              />
-            </div>
-
-            <div className="field">
-              <label htmlFor="job-max-salary" className="field-label">
-                Salário máximo (R$) *
-              </label>
-              <input
-                id="job-max-salary"
-                type="number"
-                min={0}
-                step="100"
-                className="input tabular-nums"
-                value={maximumSalary}
-                onChange={(e) => setMaximumSalary(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="form-grid-2">
-            <div className="field">
-              <label htmlFor="job-modality" className="field-label">
-                Modalidade *
-              </label>
-              <select
-                id="job-modality"
-                className="select"
-                value={modality}
-                onChange={(e) => setModality(e.target.value as WorkModality)}
-              >
-                <option value="REMOTE">Remoto</option>
-                <option value="HYBRID">Híbrido</option>
-                <option value="ONSITE">Presencial</option>
-              </select>
-            </div>
-
-            <div className="field">
-              <label htmlFor="job-contract" className="field-label">
-                Regime de contratação *
-              </label>
-              <select
-                id="job-contract"
-                className="select"
-                value={contractType}
-                onChange={(e) => setContractType(e.target.value)}
-              >
-                <option value="CLT">CLT</option>
-                <option value="PJ">PJ</option>
-                <option value="CLT / PJ">CLT / PJ</option>
-                <option value="Estágio">Estágio</option>
-                <option value="Temporário">Temporário</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="form-grid-2">
-            <div className="field">
-              <label htmlFor="job-city" className="field-label">
-                Cidade {modality !== 'REMOTE' ? '*' : ''}
-              </label>
-              <input
-                id="job-city"
+                id="job-title"
                 className="input"
-                value={city}
-                onChange={(e) => setCity(e.target.value)}
-                placeholder="Ex: São Paulo"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="Ex: Pessoa Desenvolvedora Java Pleno"
               />
             </div>
 
             <div className="field">
-              <label htmlFor="job-state" className="field-label">
-                Estado (UF) {modality !== 'REMOTE' ? '*' : ''}
+              <label htmlFor="job-description" className="field-label">
+                Descrição e responsabilidades *
               </label>
-              <select
-                id="job-state"
-                className="select"
-                value={stateUf}
-                onChange={(e) => setStateUf(e.target.value)}
-              >
-                <option value="">Selecionar UF</option>
-                {BRAZIL_STATES.map((uf) => (
-                  <option key={uf} value={uf}>
-                    {uf}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          <div className="form-grid-2">
-            <div className="field">
-              <label htmlFor="job-seniority" className="field-label">
-                Senioridade *
-              </label>
-              <select
-                id="job-seniority"
-                className="select"
-                value={seniorityLevel}
-                onChange={(e) => setSeniorityLevel(e.target.value)}
-              >
-                <option value="Estágio">Estágio</option>
-                <option value="Júnior">Júnior</option>
-                <option value="Pleno">Pleno</option>
-                <option value="Sênior">Sênior</option>
-                <option value="Especialista">Especialista</option>
-              </select>
-            </div>
-
-            <div className="field">
-              <label htmlFor="job-exp" className="field-label">
-                Experiência mínima (anos) *
-              </label>
-              <input
-                id="job-exp"
-                type="number"
-                min={0}
-                max={40}
-                className="input tabular-nums"
-                value={experienceYears}
-                onChange={(e) => setExperienceYears(e.target.value)}
+              <textarea
+                id="job-description"
+                className="textarea"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Descreva os desafios do time, stack utilizada e o que a pessoa fará no dia a dia."
               />
             </div>
-          </div>
+          </fieldset>
 
-          {/* Competências */}
-          <div className="field">
-            <span className="field-label">Competências da vaga</span>
-            <span className="field-hint">
-              Obrigatórias valem até 35 pontos e diferenciais até 15 pontos no ranking.
-            </span>
+          {/* Seção 2: Remuneração, formato e local */}
+          <fieldset className="form-section">
+            <legend className="form-section-title">2. Remuneração e formato de trabalho</legend>
+            <p className="form-section-desc">
+              A faixa salarial é exibida de forma transparente no cartão da vaga.
+            </p>
 
-            <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
-              <input
-                className="input"
-                value={skillInput}
-                onChange={(e) => setSkillInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
+            <div className="form-grid-2">
+              <div className="field">
+                <label htmlFor="job-min-salary" className="field-label">
+                  Salário mínimo (R$) *
+                </label>
+                <input
+                  id="job-min-salary"
+                  type="number"
+                  min={0}
+                  step="100"
+                  className="input tabular-nums"
+                  value={minimumSalary}
+                  onChange={(e) => setMinimumSalary(e.target.value)}
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="job-max-salary" className="field-label">
+                  Salário máximo (R$) *
+                </label>
+                <input
+                  id="job-max-salary"
+                  type="number"
+                  min={0}
+                  step="100"
+                  className="input tabular-nums"
+                  value={maximumSalary}
+                  onChange={(e) => setMaximumSalary(e.target.value)}
+                />
+              </div>
+            </div>
+
+            <div className="form-grid-2">
+              <div className="field">
+                <label htmlFor="job-modality" className="field-label">
+                  Modalidade *
+                </label>
+                <select
+                  id="job-modality"
+                  className="select"
+                  value={modality}
+                  onChange={(e) => setModality(e.target.value as WorkModality)}
+                >
+                  <option value="REMOTE">Remoto</option>
+                  <option value="HYBRID">Híbrido</option>
+                  <option value="ONSITE">Presencial</option>
+                </select>
+              </div>
+
+              <div className="field">
+                <label htmlFor="job-contract" className="field-label">
+                  Regime de contratação *
+                </label>
+                <select
+                  id="job-contract"
+                  className="select"
+                  value={contractType}
+                  onChange={(e) => setContractType(e.target.value)}
+                >
+                  <option value="CLT">CLT</option>
+                  <option value="PJ">PJ</option>
+                  <option value="CLT / PJ">CLT / PJ</option>
+                  <option value="Estágio">Estágio</option>
+                  <option value="Temporário">Temporário</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="form-grid-2">
+              <div className="field">
+                <label htmlFor="job-city" className="field-label">
+                  Cidade {modality !== 'REMOTE' ? '*' : ''}
+                </label>
+                <input
+                  id="job-city"
+                  className="input"
+                  value={city}
+                  onChange={(e) => setCity(e.target.value)}
+                  placeholder="Ex: São Paulo"
+                />
+              </div>
+
+              <div className="field">
+                <label htmlFor="job-state" className="field-label">
+                  Estado (UF) {modality !== 'REMOTE' ? '*' : ''}
+                </label>
+                <select
+                  id="job-state"
+                  className="select"
+                  value={stateUf}
+                  onChange={(e) => setStateUf(e.target.value)}
+                >
+                  <option value="">Selecionar UF</option>
+                  {BRAZIL_STATES.map((uf) => (
+                    <option key={uf} value={uf}>
+                      {uf}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </fieldset>
+
+          {/* Seção 3: Senioridade e experiência */}
+          <fieldset className="form-section">
+            <legend className="form-section-title">3. Perfil desejado</legend>
+            <div className="form-grid-2">
+              <div className="field">
+                <label htmlFor="job-seniority" className="field-label">
+                  Senioridade *
+                </label>
+                <select
+                  id="job-seniority"
+                  className="select"
+                  value={seniorityLevel}
+                  onChange={(e) => setSeniorityLevel(e.target.value)}
+                >
+                  <option value="Estágio">Estágio</option>
+                  <option value="Júnior">Júnior</option>
+                  <option value="Pleno">Pleno</option>
+                  <option value="Sênior">Sênior</option>
+                  <option value="Especialista">Especialista</option>
+                </select>
+              </div>
+
+              <div className="field">
+                <label htmlFor="job-exp" className="field-label">
+                  Experiência mínima (anos) *
+                </label>
+                <input
+                  id="job-exp"
+                  type="number"
+                  min={0}
+                  max={40}
+                  className="input tabular-nums"
+                  value={experienceYears}
+                  onChange={(e) => setExperienceYears(e.target.value)}
+                />
+              </div>
+            </div>
+          </fieldset>
+
+          {/* Seção 4: Competências e benefícios */}
+          <fieldset className="form-section">
+            <legend className="form-section-title">4. Competências e benefícios</legend>
+
+            <div className="field">
+              <span className="field-label">Competências da vaga</span>
+              <span className="field-hint">
+                Obrigatórias valem até 35 pontos e diferenciais até 15 pontos no ranking.
+              </span>
+
+              <div className="row-wrap">
+                <input
+                  className="input flex-1"
+                  value={skillInput}
+                  onChange={(e) => setSkillInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addSkill(skillInput, skillTypeInput);
+                      setSkillInput('');
+                    }
+                  }}
+                  placeholder="Ex: Java, React, SQL..."
+                  aria-label="Nome da competência"
+                />
+                <select
+                  className="select"
+                  style={{ width: 148, flexShrink: 0 }}
+                  value={skillTypeInput}
+                  onChange={(e) => setSkillTypeInput(e.target.value as SkillType)}
+                  aria-label="Tipo da competência"
+                >
+                  <option value="REQUIRED">Obrigatória</option>
+                  <option value="PREFERRED">Diferencial</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-icon"
+                  aria-label="Adicionar competência"
+                  onClick={() => {
                     addSkill(skillInput, skillTypeInput);
                     setSkillInput('');
-                  }
-                }}
-                placeholder="Ex: Java, React, SQL..."
-                aria-label="Nome da competência"
-              />
-              <select
-                className="select"
-                style={{ width: 155, flexShrink: 0 }}
-                value={skillTypeInput}
-                onChange={(e) => setSkillTypeInput(e.target.value as SkillType)}
-                aria-label="Tipo da competência"
-              >
-                <option value="REQUIRED">Obrigatória</option>
-                <option value="PREFERRED">Diferencial</option>
-              </select>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  addSkill(skillInput, skillTypeInput);
-                  setSkillInput('');
-                }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 8 }}>
-              {SUGGESTED_SKILLS.filter(
-                (s) => !skills.some((added) => added.skillName.toLowerCase() === s.toLowerCase())
-              )
-                .slice(0, 8)
-                .map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    className="chip"
-                    style={{ cursor: 'pointer' }}
-                    onClick={() => addSkill(s, skillTypeInput)}
-                  >
-                    <Plus size={12} />
-                    {s}
-                  </button>
-                ))}
-            </div>
-
-            {skills.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                {skills.map((skill) => (
-                  <span
-                    key={skill.skillName}
-                    className={`chip ${skill.skillType === 'REQUIRED' ? 'chip-skill' : 'chip-skill-soft'}`}
-                  >
-                    {skill.skillName} ({skill.skillType === 'REQUIRED' ? 'Obrig.' : 'Dif.'})
-                    <button
-                      type="button"
-                      onClick={() => removeSkill(skill.skillName)}
-                      aria-label={`Remover ${skill.skillName}`}
-                      style={{
-                        border: 0,
-                        background: 'transparent',
-                        color: 'inherit',
-                        cursor: 'pointer',
-                        padding: 0,
-                        display: 'inline-flex',
-                      }}
-                    >
-                      <X size={13} />
-                    </button>
-                  </span>
-                ))}
+                  }}
+                >
+                  <Plus size={16} />
+                </button>
               </div>
-            )}
-          </div>
 
-          {/* Benefícios */}
-          <div className="field">
-            <span className="field-label">Benefícios oferecidos</span>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <input
-                className="input"
-                value={benefitInput}
-                onChange={(e) => setBenefitInput(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    e.preventDefault();
+              <div className="row-wrap" style={{ marginTop: 6 }}>
+                {SUGGESTED_SKILLS.filter(
+                  (s) => !skills.some((added) => added.skillName.toLowerCase() === s.toLowerCase())
+                )
+                  .slice(0, 8)
+                  .map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className="chip chip-action"
+                      onClick={() => addSkill(s, skillTypeInput)}
+                    >
+                      <Plus size={12} />
+                      {s}
+                    </button>
+                  ))}
+              </div>
+
+              {skills.length > 0 && (
+                <div className="row-wrap" style={{ marginTop: 8 }}>
+                  {skills.map((skill) => (
+                    <span
+                      key={skill.skillName}
+                      className={`chip ${
+                        skill.skillType === 'REQUIRED' ? 'chip-skill' : 'chip-skill-soft'
+                      }`}
+                    >
+                      {skill.skillName} ({skill.skillType === 'REQUIRED' ? 'Obrig.' : 'Dif.'})
+                      <button
+                        type="button"
+                        className="chip-remove"
+                        onClick={() => removeSkill(skill.skillName)}
+                        aria-label={`Remover ${skill.skillName}`}
+                      >
+                        <X size={13} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="field">
+              <span className="field-label">Benefícios oferecidos</span>
+              <div className="row-wrap">
+                <input
+                  className="input flex-1"
+                  value={benefitInput}
+                  onChange={(e) => setBenefitInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      addBenefit(benefitInput);
+                      setBenefitInput('');
+                    }
+                  }}
+                  placeholder="Ex: Vale Refeição R$ 1.200/mês"
+                  aria-label="Benefício"
+                />
+                <button
+                  type="button"
+                  className="btn btn-secondary btn-icon"
+                  aria-label="Adicionar benefício"
+                  onClick={() => {
                     addBenefit(benefitInput);
                     setBenefitInput('');
-                  }
-                }}
-                placeholder="Ex: Vale Refeição R$ 1.200/mês"
-                aria-label="Benefício"
-              />
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => {
-                  addBenefit(benefitInput);
-                  setBenefitInput('');
-                }}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 6 }}>
-              {SUGGESTED_BENEFITS.filter(
-                (b) => !benefits.some((added) => added.toLowerCase() === b.toLowerCase())
-              ).map((b) => (
-                <button
-                  key={b}
-                  type="button"
-                  className="chip"
-                  style={{ cursor: 'pointer' }}
-                  onClick={() => addBenefit(b)}
+                  }}
                 >
-                  <Plus size={12} />
-                  {b}
+                  <Plus size={16} />
                 </button>
-              ))}
-            </div>
+              </div>
 
-            {benefits.length > 0 && (
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
-                {benefits.map((benefit) => (
-                  <span key={benefit} className="chip">
-                    {benefit}
-                    <button
-                      type="button"
-                      onClick={() => removeBenefit(benefit)}
-                      aria-label={`Remover ${benefit}`}
-                      style={{
-                        border: 0,
-                        background: 'transparent',
-                        color: 'inherit',
-                        cursor: 'pointer',
-                        padding: 0,
-                        display: 'inline-flex',
-                      }}
-                    >
-                      <X size={13} />
-                    </button>
-                  </span>
+              <div className="row-wrap" style={{ marginTop: 6 }}>
+                {SUGGESTED_BENEFITS.filter(
+                  (b) => !benefits.some((added) => added.toLowerCase() === b.toLowerCase())
+                ).map((b) => (
+                  <button
+                    key={b}
+                    type="button"
+                    className="chip chip-action"
+                    onClick={() => addBenefit(b)}
+                  >
+                    <Plus size={12} />
+                    {b}
+                  </button>
                 ))}
               </div>
-            )}
-          </div>
+
+              {benefits.length > 0 && (
+                <div className="row-wrap" style={{ marginTop: 8 }}>
+                  {benefits.map((benefit) => (
+                    <span key={benefit} className="chip">
+                      {benefit}
+                      <button
+                        type="button"
+                        className="chip-remove"
+                        onClick={() => removeBenefit(benefit)}
+                        aria-label={`Remover ${benefit}`}
+                      >
+                        <X size={13} />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          </fieldset>
         </form>
 
         <div className="drawer-footer">

@@ -2,21 +2,21 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  Briefcase,
   Check,
   CheckCircle2,
   Heart,
+  Mail,
   MapPin,
   MessageSquare,
   RotateCcw,
   ShieldCheck,
   SlidersHorizontal,
   Smartphone,
-  Sparkles,
   Users,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { BrandMark } from '../components/BrandMark';
 
 interface DemoCandidate {
   id: number;
@@ -100,6 +100,8 @@ export function LandingPage() {
   const [matchedDemoCandidate, setMatchedDemoCandidate] = useState<DemoCandidate | null>(null);
 
   const currentDemo = demoIndex < DEMO_CANDIDATES.length ? DEMO_CANDIDATES[demoIndex] : null;
+  const loginHref = isAuthenticated ? '/painel/vagas' : '/login';
+  const loginLabel = isAuthenticated ? 'Abrir painel' : 'Entrar';
 
   const handleDemoPass = () => {
     setDemoIndex((prev) => prev + 1);
@@ -120,12 +122,8 @@ export function LandingPage() {
     <div className="landing-shell">
       <header className="landing-header">
         <div className="container landing-nav-inner">
-          <Link to="/" className="brand-mark">
-            <span className="brand-icon" aria-hidden="true">
-              <Briefcase size={20} strokeWidth={2.3} />
-            </span>
-            <span>Trabalhaki</span>
-            <span className="badge badge-indigo">Empresas</span>
+          <Link to="/" aria-label="Trabalhaki — Página inicial">
+            <BrandMark badge="Empresas" hideBadgeOnMobile />
           </Link>
 
           <nav className="landing-links" aria-label="Navegação principal">
@@ -136,12 +134,12 @@ export function LandingPage() {
           </nav>
 
           <div className="landing-actions">
-            <Link to="/cadastro" className="btn btn-secondary btn-sm">
-              Cadastrar empresa
+            <Link to="/cadastro" className="btn btn-secondary btn-sm hide-on-mobile">
+              Criar conta gratuita
             </Link>
-            <Link to={isAuthenticated ? '/painel/vagas' : '/login'} className="btn btn-primary btn-sm">
-              {isAuthenticated ? 'Ir para o Painel' : 'Acessar Painel'}
-              <ArrowRight size={16} />
+            <Link to={loginHref} className="btn btn-primary btn-sm">
+              {loginLabel}
+              <ArrowRight size={15} />
             </Link>
           </div>
         </div>
@@ -155,78 +153,66 @@ export function LandingPage() {
               <h1 className="hero-title">Contrate quem já escolheu a sua vaga.</h1>
               <p className="hero-lead">
                 O Trabalhaki conecta o aplicativo mobile dos candidatos ao portal web da sua empresa.
-                Publique vagas com critérios claros, avalie no swipe apenas profissionais que já
+                Publique vagas com critérios claros, avalie na triagem apenas profissionais que já
                 demonstraram interesse e inicie a conversa assim que o match acontecer.
               </p>
 
               <div className="hero-cta-row">
-                <Link
-                  to={isAuthenticated ? '/painel/vagas' : '/login'}
-                  className="btn btn-primary btn-lg"
-                >
-                  {isAuthenticated ? 'Abrir Painel da Empresa' : 'Acessar Painel da Empresa'}
+                <Link to="/cadastro" className="btn btn-primary btn-lg">
+                  Criar conta gratuita
                   <ArrowRight size={18} />
                 </Link>
-                <Link to="/cadastro" className="btn btn-secondary btn-lg">
-                  Criar conta gratuita
+                <Link to={loginHref} className="btn btn-secondary btn-lg">
+                  {loginLabel}
                 </Link>
               </div>
 
               <div className="hero-pillars">
                 <span className="hero-pillar-item">
-                  <CheckCircle2 size={17} color="#393be7" />
+                  <CheckCircle2 size={17} className="icon-primary" />
                   Apenas candidatos interessados na fila
                 </span>
                 <span className="hero-pillar-item">
-                  <SlidersHorizontal size={17} color="#393be7" />
-                  Score de compatibilidade explicado (0–100)
+                  <SlidersHorizontal size={17} className="icon-primary" />
+                  Compatibilidade explicada de 0 a 100
                 </span>
                 <span className="hero-pillar-item">
-                  <MessageSquare size={17} color="#393be7" />
+                  <MessageSquare size={17} className="icon-primary" />
                   Chat direto iniciado pela empresa
                 </span>
               </div>
             </div>
 
-            <div className="demo-stage" aria-label="Demonstração interativa de triagem por swipe">
+            <div className="demo-stage" aria-label="Demonstração interativa de triagem">
               <div className="demo-stage-bar">
-                <div>
-                  <div className="demo-stage-title">Vaga: Desenvolvedor Java Backend Pleno</div>
+                <div className="min-w-0">
+                  <div className="demo-stage-title truncate">
+                    Vaga: Desenvolvedor Java Backend Pleno
+                  </div>
                   <div className="demo-stage-sub tabular-nums">
-                    Remoto • R$ 5.000 — R$ 7.500 • {Math.max(DEMO_CANDIDATES.length - demoIndex, 0)} interessados
+                    Remoto · R$ 5.000 — R$ 7.500 · {Math.max(DEMO_CANDIDATES.length - demoIndex, 0)} interessados
                   </div>
                 </div>
-                <span className="badge badge-indigo">Prévia do Painel</span>
+                <span className="badge badge-indigo">Exemplo</span>
               </div>
 
               {matchedDemoCandidate ? (
                 <div className="demo-match-banner">
-                  <div
-                    style={{
-                      width: 52,
-                      height: 52,
-                      margin: '0 auto 12px',
-                      borderRadius: 16,
-                      background: '#86e5a1',
-                      color: '#12152e',
-                      display: 'grid',
-                      placeItems: 'center',
-                    }}
-                  >
-                    <Sparkles size={24} />
+                  <div className="demo-match-seal" aria-hidden="true">
+                    <CheckCircle2 size={24} />
                   </div>
                   <h3>Match confirmado com {matchedDemoCandidate.name}</h3>
                   <p>
                     Como {matchedDemoCandidate.name.split(' ')[0]} já havia curtido esta vaga no
                     aplicativo, sua aprovação liberou o chat pós-match imediatamente.
                   </p>
-                  <div className="demo-controls" style={{ marginTop: 20 }}>
+                  <div className="demo-controls">
                     <button type="button" className="btn btn-secondary" onClick={resetDemo}>
                       <RotateCcw size={16} />
                       Testar novamente
                     </button>
-                    <Link to="/login" className="btn btn-mint">
-                      Acessar painel real
+                    <Link to="/cadastro" className="btn btn-mint">
+                      Criar conta gratuita
                       <ArrowRight size={16} />
                     </Link>
                   </div>
@@ -235,14 +221,10 @@ export function LandingPage() {
                 <div className="demo-card" key={currentDemo.id}>
                   <div className="demo-card-top">
                     <div className="demo-avatar-group">
-                      <div className="avatar-badge" style={{ width: 48, height: 48, fontSize: '0.95rem' }}>
-                        {currentDemo.initials}
-                      </div>
-                      <div>
-                        <div style={{ fontWeight: 700, fontSize: '1.05rem' }}>{currentDemo.name}</div>
-                        <div style={{ fontSize: '0.86rem', color: 'var(--color-text-secondary)' }}>
-                          {currentDemo.role}
-                        </div>
+                      <div className="avatar-badge avatar-md">{currentDemo.initials}</div>
+                      <div className="min-w-0">
+                        <div className="demo-candidate-name">{currentDemo.name}</div>
+                        <div className="demo-candidate-role">{currentDemo.role}</div>
                       </div>
                     </div>
                     <span className="score-pill">{currentDemo.score}% compatível</span>
@@ -268,8 +250,8 @@ export function LandingPage() {
 
                   <div className="demo-breakdown">
                     {currentDemo.breakdown.map((item) => (
-                      <div key={item} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Check size={14} color="#0f6b3a" />
+                      <div key={item} className="demo-breakdown-item">
+                        <Check size={14} className="icon-success flow-list-icon" />
                         <span>{item}</span>
                       </div>
                     ))}
@@ -287,11 +269,11 @@ export function LandingPage() {
                   </div>
                 </div>
               ) : (
-                <div className="demo-card" style={{ textAlign: 'center', padding: '32px 20px' }}>
-                  <p style={{ fontWeight: 700, fontSize: '1.05rem' }}>
+                <div className="demo-card demo-card-empty">
+                  <p className="demo-candidate-name">
                     Você revisou todos os candidatos da prévia.
                   </p>
-                  <p style={{ marginTop: 6, fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+                  <p className="text-muted text-sm" style={{ marginTop: 6 }}>
                     No painel completo você pode desfazer o último descarte ou alternar entre vagas.
                   </p>
                   <div style={{ marginTop: 18 }}>
@@ -358,35 +340,35 @@ export function LandingPage() {
         <section id="como-funciona" className="section-band">
           <div className="container">
             <h2 className="section-heading">
-              Dois ambientes, um único back-end em tempo real
+              Candidatos no app, sua equipe no portal web
             </h2>
             <p className="section-lead">
-              Cada lado opera na superfície ideal para sua rotina. Os interesses registrados no
-              aplicativo mobile alimentam imediatamente a fila de triagem do portal web empresarial.
+              Cada lado opera na experiência ideal para sua rotina. Os interesses registrados no
+              aplicativo mobile aparecem imediatamente na fila de triagem da sua empresa.
             </p>
 
             <div className="flow-split">
               <div className="flow-panel">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Smartphone size={22} color="#393be7" />
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 700 }}>No App do Candidato</h3>
+                <div className="flow-panel-header">
+                  <Smartphone size={22} className="icon-primary" />
+                  <h3 className="flow-panel-title">No App do Candidato</h3>
                 </div>
                 <ul className="flow-list">
                   <li>
-                    <CheckCircle2 size={18} color="#393be7" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <CheckCircle2 size={18} className="icon-primary flow-list-icon" />
                     <span>
                       Perfil estruturado reutilizável com habilidades, experiência, modalidade e
                       pretensão salarial.
                     </span>
                   </li>
                   <li>
-                    <CheckCircle2 size={18} color="#393be7" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <CheckCircle2 size={18} className="icon-primary flow-list-icon" />
                     <span>
                       Visualização transparente de salário e condições antes de curtir a vaga.
                     </span>
                   </li>
                   <li>
-                    <CheckCircle2 size={18} color="#393be7" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <CheckCircle2 size={18} className="icon-primary flow-list-icon" />
                     <span>
                       Vagas encerradas pela empresa saem automaticamente da descoberta e das curtidas.
                     </span>
@@ -395,29 +377,29 @@ export function LandingPage() {
               </div>
 
               <div className="flow-panel flow-panel-company">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                  <Users size={22} color="#280f9f" />
-                  <h3 style={{ fontSize: '1.3rem', fontWeight: 700 }}>No Portal da Empresa</h3>
+                <div className="flow-panel-header">
+                  <Users size={22} className="icon-accent" />
+                  <h3 className="flow-panel-title">No Portal da Empresa</h3>
                 </div>
                 <ul className="flow-list">
                   <li>
-                    <CheckCircle2 size={18} color="#280f9f" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <CheckCircle2 size={18} className="icon-accent flow-list-icon" />
                     <span>
                       Painel completo para publicar, editar, pausar ou encerrar vagas com requisitos e
                       benefícios claros.
                     </span>
                   </li>
                   <li>
-                    <CheckCircle2 size={18} color="#280f9f" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <CheckCircle2 size={18} className="icon-accent flow-list-icon" />
                     <span>
-                      Swipe dedicado aos candidatos que já se candidataram naquela vaga, ordenados
+                      Triagem dedicada aos candidatos que já se candidataram naquela vaga, ordenados
                       por compatibilidade.
                     </span>
                   </li>
                   <li>
-                    <CheckCircle2 size={18} color="#280f9f" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <CheckCircle2 size={18} className="icon-accent flow-list-icon" />
                     <span>
-                      Chat pós-match iniciado pelo recrutador, snapshot imutável do perfil e avanço de
+                      Chat pós-match iniciado pelo recrutador, registro preservado do perfil e avanço de
                       etapas seletivas.
                     </span>
                   </li>
@@ -433,13 +415,13 @@ export function LandingPage() {
             <div>
               <h2 className="section-heading">Compatibilidade explicada em 5 critérios objetivos</h2>
               <p className="section-lead">
-                Em vez de ocultar candidatos atrás de filtros opacos, o algoritmo do Trabalhaki calcula
-                uma pontuação determinística de 0 a 100 pontos e explica exatamente o porquê de cada
+                Em vez de ocultar candidatos atrás de filtros opacos, o Trabalhaki calcula
+                uma pontuação transparente de 0 a 100 pontos e explica exatamente o porquê de cada
                 nota no cartão do candidato.
               </p>
-              <div style={{ marginTop: 28 }}>
+              <div className="section-cta-wrap">
                 <Link to="/cadastro" className="btn btn-mint btn-lg">
-                  Publicar primeira vaga
+                  Criar conta gratuita
                   <ArrowRight size={18} />
                 </Link>
               </div>
@@ -450,16 +432,20 @@ export function LandingPage() {
                 <div key={item.label} className="weight-row">
                   <div className="weight-row-top">
                     <span>{item.label}</span>
-                    <span className="tabular-nums" style={{ color: '#86e5a1' }}>
-                      até {item.points} pts
+                    <span className="tabular-nums weight-points">
+                      {item.points} de 100 pts
                     </span>
                   </div>
-                  <div className="weight-track">
-                    <div className="weight-fill" style={{ width: `${item.points * 2}%` }} />
+                  <div className="weight-track" aria-hidden="true">
+                    <div className="weight-fill" style={{ width: `${item.points}%` }} />
                   </div>
-                  <span style={{ fontSize: '0.82rem', color: '#c2c9e6' }}>{item.detail}</span>
+                  <span className="weight-detail">{item.detail}</span>
                 </div>
               ))}
+              <div className="weight-scale-caption tabular-nums">
+                <span>Escala real proporcional ao total de 100 pontos</span>
+                <span>Soma: 100 pts</span>
+              </div>
             </div>
           </div>
         </section>
@@ -476,71 +462,78 @@ export function LandingPage() {
             <div className="plans-grid">
               <div className="plan-box">
                 <div>
-                  <span className="badge badge-mint">Plano FREE</span>
-                  <h3 style={{ fontSize: '1.6rem', fontWeight: 800, marginTop: 12 }}>
-                    Essencial para contratar
-                  </h3>
-                  <p style={{ marginTop: 8, color: 'var(--color-text-secondary)' }}>
+                  <span className="badge badge-mint">Plano Gratuito</span>
+                  <h3 className="plan-title">Essencial para contratar</h3>
+                  <div className="plan-price-row">
+                    <span className="plan-price">R$ 0</span>
+                    <span className="plan-period">/mês · sem cartão</span>
+                  </div>
+                  <p className="plan-desc">
                     Ideal para validar vagas reais e experimentar o match por interesse recíproco.
                   </p>
                   <ul className="flow-list">
                     <li>
-                      <Check size={17} color="#0f6b3a" />
+                      <Check size={17} className="icon-success flow-list-icon" />
                       <span>Até 3 vagas ativas simultaneamente</span>
                     </li>
                     <li>
-                      <Check size={17} color="#0f6b3a" />
-                      <span>Swipe de candidatos que curtiram suas vagas</span>
+                      <Check size={17} className="icon-success flow-list-icon" />
+                      <span>Triagem de candidatos que curtiram suas vagas</span>
                     </li>
                     <li>
-                      <Check size={17} color="#0f6b3a" />
+                      <Check size={17} className="icon-success flow-list-icon" />
                       <span>Compatibilidade explicada e chat pós-match</span>
                     </li>
                     <li>
-                      <Check size={17} color="#0f6b3a" />
+                      <Check size={17} className="icon-success flow-list-icon" />
                       <span>Gestão de etapas seletivas e equipe de recrutamento</span>
                     </li>
                   </ul>
                 </div>
 
                 <Link to="/cadastro" className="btn btn-secondary btn-lg">
-                  Cadastrar empresa grátis
+                  Criar conta gratuita
                 </Link>
               </div>
 
               <div className="plan-box plan-box-featured">
                 <div>
-                  <span className="badge badge-indigo">Plano PREMIUM</span>
-                  <h3 style={{ fontSize: '1.6rem', fontWeight: 800, marginTop: 12 }}>
-                    Operação contínua sem limite de vagas
-                  </h3>
-                  <p style={{ marginTop: 8, color: 'var(--color-text-secondary)' }}>
-                    Para empresas com recrutamento recorrente em múltiplas áreas e squads.
+                  <span className="badge badge-indigo">Plano Premium</span>
+                  <h3 className="plan-title">Operação contínua sem limite de vagas</h3>
+                  <div className="plan-price-row">
+                    <span className="plan-price">R$ 249</span>
+                    <span className="plan-period">/mês · cancele quando quiser</span>
+                  </div>
+                  <p className="plan-desc">
+                    Para empresas com recrutamento recorrente em múltiplas áreas e times.
                   </p>
                   <ul className="flow-list">
                     <li>
-                      <Check size={17} color="#393be7" />
+                      <Check size={17} className="icon-primary flow-list-icon" />
                       <span>Publicação ilimitada de vagas ativas</span>
                     </li>
                     <li>
-                      <Check size={17} color="#393be7" />
+                      <Check size={17} className="icon-primary flow-list-icon" />
                       <span>Múltiplos recrutadores e administradores no mesmo CNPJ</span>
                     </li>
                     <li>
-                      <Check size={17} color="#393be7" />
-                      <span>Histórico auditável de processos e snapshots preservados</span>
+                      <Check size={17} className="icon-primary flow-list-icon" />
+                      <span>Histórico completo de etapas e candidaturas preservadas</span>
                     </li>
                     <li>
-                      <Check size={17} color="#393be7" />
+                      <Check size={17} className="icon-primary flow-list-icon" />
                       <span>Suporte dedicado na operação do portal web</span>
                     </li>
                   </ul>
                 </div>
 
-                <Link to="/login" className="btn btn-primary btn-lg">
-                  Acessar Painel da Empresa
-                  <ArrowRight size={18} />
-                </Link>
+                <a
+                  href="mailto:comercial@trabalhaki.com.br?subject=Plano%20Premium%20Trabalhaki"
+                  className="btn btn-primary btn-lg"
+                >
+                  <Mail size={17} />
+                  Falar com o comercial
+                </a>
               </div>
             </div>
           </div>
@@ -549,13 +542,13 @@ export function LandingPage() {
 
       <footer className="landing-footer">
         <div className="container landing-footer-inner">
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <ShieldCheck size={18} color="#393be7" />
-            <span>Trabalhaki Empresas — Portal Web integrado à API oficial do Trabalhaki.</span>
+          <div className="row-inline">
+            <ShieldCheck size={18} className="icon-primary" />
+            <span>Trabalhaki Empresas — Recrutamento por interesse recíproco.</span>
           </div>
-          <div style={{ display: 'flex', gap: 20, fontWeight: 600 }}>
-            <Link to="/login">Entrar como empresa</Link>
-            <Link to="/cadastro">Criar conta</Link>
+          <div className="landing-footer-links">
+            <Link to={loginHref}>{loginLabel}</Link>
+            <Link to="/cadastro">Criar conta gratuita</Link>
           </div>
         </div>
       </footer>

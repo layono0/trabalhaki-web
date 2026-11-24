@@ -3,14 +3,13 @@ import { Link } from 'react-router-dom';
 import {
   AlertCircle,
   Briefcase,
-  Flame,
+  Info,
   MapPin,
   PauseCircle,
   Pencil,
   PlayCircle,
   Plus,
   Search,
-  Sparkles,
   Users,
   XCircle,
 } from 'lucide-react';
@@ -18,7 +17,10 @@ import { useAuth } from '../context/AuthContext';
 import { api, ApiError } from '../services/api';
 import type { CreateJobRequest, JobResponse, JobStatus } from '../types/api';
 import { formatJobStatus, formatLocation, formatModality, formatSalaryRange } from '../utils/formatters';
+import { formatPlanShort } from '../utils/constants';
 import { JobFormDrawer } from '../components/JobFormDrawer';
+import { TriageIcon } from '../components/BrandMark';
+import { useDialogA11y } from '../hooks/useDialogA11y';
 
 type StatusFilter = 'ALL' | JobStatus;
 
@@ -37,6 +39,13 @@ export function JobsPage() {
   const [editingJob, setEditingJob] = useState<JobResponse | null>(null);
   const [confirmCloseJob, setConfirmCloseJob] = useState<JobResponse | null>(null);
   const [actionBusyId, setActionBusyId] = useState<number | null>(null);
+
+  const { containerRef: closeModalRef, handleBackdropClick: handleCloseBackdrop } = useDialogA11y({
+    open: Boolean(confirmCloseJob),
+    onClose: () => {
+      if (actionBusyId === null) setConfirmCloseJob(null);
+    },
+  });
 
   const loadData = useCallback(async () => {
     setIsLoading(true);
@@ -108,7 +117,11 @@ export function JobsPage() {
       );
       await loadData();
     } catch (err) {
-      setError(err instanceof ApiError || err instanceof Error ? err.message : 'Erro ao atualizar status da vaga.');
+      setError(
+        err instanceof ApiError || err instanceof Error
+          ? err.message
+          : 'Erro ao atualizar status da vaga.'
+      );
     } finally {
       setActionBusyId(null);
     }
@@ -125,7 +138,9 @@ export function JobsPage() {
       setConfirmCloseJob(null);
       await loadData();
     } catch (err) {
-      setError(err instanceof ApiError || err instanceof Error ? err.message : 'Erro ao encerrar vaga.');
+      setError(
+        err instanceof ApiError || err instanceof Error ? err.message : 'Erro ao encerrar vaga.'
+      );
     } finally {
       setActionBusyId(null);
     }
@@ -137,7 +152,7 @@ export function JobsPage() {
         <div>
           <h1 className="page-title">Painel de Vagas</h1>
           <p className="page-subtitle">
-            Publique oportunidades estruturadas e acompanhe os candidatos interessados para o swipe.
+            Publique oportunidades estruturadas e acompanhe os candidatos interessados para triagem.
           </p>
         </div>
         <button
@@ -160,22 +175,24 @@ export function JobsPage() {
               {company?.planType === 'FREE' ? `${activeJobsCount} / 3` : activeJobsCount}
             </div>
             <div className="summary-label">
-              {company?.planType === 'FREE' ? 'Vagas ativas no plano FREE' : 'Vagas ativas no plano PREMIUM'}
+              {company?.planType === 'PREMIUM'
+                ? 'Vagas ativas no plano Premium'
+                : 'Vagas ativas no plano gratuito'}
             </div>
           </div>
           <span className="badge badge-indigo">
             <Briefcase size={14} />
-            {company?.planType || 'FREE'}
+            {formatPlanShort(company?.planType)}
           </span>
         </div>
 
         <div className="summary-tile">
           <div>
             <div className="summary-value">{totalPendingApplicants}</div>
-            <div className="summary-label">Candidatos aguardando swipe</div>
+            <div className="summary-label">Candidatos aguardando triagem</div>
           </div>
           <Link to="/painel/swipe" className="btn btn-secondary btn-sm">
-            Abrir swipe
+            Abrir triagem
           </Link>
         </div>
 
@@ -191,8 +208,8 @@ export function JobsPage() {
       </section>
 
       {isFreePlanAtLimit && (
-        <div className="alert alert-info" style={{ marginBottom: 18 }}>
-          <Sparkles size={18} style={{ flexShrink: 0, marginTop: 2 }} />
+        <div className="alert alert-info">
+          <Info size={18} className="icon-shrink" />
           <span>
             Sua empresa atingiu o limite de <strong>3 vagas ativas</strong> do plano gratuito. Para
             publicar outra vaga agora, pause ou encerre uma vaga ativa.
@@ -201,14 +218,14 @@ export function JobsPage() {
       )}
 
       {feedback && (
-        <div className="alert alert-success" style={{ marginBottom: 18 }}>
+        <div className="alert alert-success">
           <span>{feedback}</span>
         </div>
       )}
 
       {error && (
-        <div className="alert alert-error" role="alert" style={{ marginBottom: 18 }}>
-          <AlertCircle size={18} style={{ flexShrink: 0, marginTop: 1 }} />
+        <div className="alert alert-error" role="alert">
+          <AlertCircle size={18} className="icon-shrink" />
           <span>{error}</span>
         </div>
       )}
@@ -232,41 +249,46 @@ export function JobsPage() {
           ))}
         </div>
 
-        <div style={{ position: 'relative', minWidth: 260 }}>
-          <Search
-            size={16}
-            style={{
-              position: 'absolute',
-              left: 12,
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: 'var(--color-text-secondary)',
-            }}
-          />
+        <div className="input-wrap toolbar-search">
+          <Search size={16} className="input-leading-icon" />
           <input
-            className="input"
-            style={{ paddingLeft: 36, minHeight: 38 }}
+            className="input input-compact input-with-icon"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Buscar por título ou skill..."
+            placeholder="Buscar por título ou competência..."
             aria-label="Buscar vagas"
           />
         </div>
       </div>
 
       {isLoading ? (
-        <div className="empty-state">
-          <p style={{ color: 'var(--color-text-secondary)' }}>Carregando vagas da empresa...</p>
+        <div className="jobs-list" aria-busy="true" aria-label="Carregando vagas">
+          {[1, 2, 3].map((idx) => (
+            <div key={idx} className="skeleton-card">
+              <div className="row-wrap">
+                <div className="skeleton skeleton-title" />
+                <div className="skeleton skeleton-pill" />
+              </div>
+              <div className="skeleton skeleton-line" style={{ width: '74%' }} />
+              <div className="row-wrap">
+                <div className="skeleton skeleton-pill" />
+                <div className="skeleton skeleton-pill" />
+                <div className="skeleton skeleton-pill" />
+              </div>
+            </div>
+          ))}
         </div>
       ) : filteredJobs.length === 0 ? (
         <div className="empty-state">
           <div className="empty-state-icon">
             <Briefcase size={24} />
           </div>
-          <h2 style={{ fontSize: '1.2rem', fontWeight: 700 }}>
-            {jobs.length === 0 ? 'Nenhuma vaga publicada ainda' : 'Nenhuma vaga encontrada com esse filtro'}
+          <h2 className="drawer-title">
+            {jobs.length === 0
+              ? 'Nenhuma vaga publicada ainda'
+              : 'Nenhuma vaga encontrada com esse filtro'}
           </h2>
-          <p style={{ maxWidth: 420, color: 'var(--color-text-secondary)', fontSize: '0.92rem' }}>
+          <p className="text-muted text-sm" style={{ maxWidth: 420 }}>
             {jobs.length === 0
               ? 'Crie a primeira vaga para que os candidatos no aplicativo mobile possam descobrir e demonstrar interesse.'
               : 'Limpe o campo de busca ou altere o filtro de status para visualizar suas oportunidades.'}
@@ -299,8 +321,8 @@ export function JobsPage() {
             return (
               <article key={job.id} className="job-row">
                 <div>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10 }}>
-                    <h2 style={{ fontSize: '1.15rem', fontWeight: 700 }}>{job.title}</h2>
+                  <div className="row-wrap">
+                    <h2 className="job-row-title">{job.title}</h2>
                     <span className={`badge ${badgeClass}`}>{statusInfo.label}</span>
                     {job.pendingApplicantsCount > 0 && (
                       <span className="badge badge-indigo tabular-nums">
@@ -311,24 +333,24 @@ export function JobsPage() {
                   </div>
 
                   <div className="job-row-meta">
-                    <span className="tabular-nums" style={{ fontWeight: 700, color: 'var(--color-secondary-text)' }}>
+                    <span className="tabular-nums job-row-salary">
                       {formatSalaryRange(job.minimumSalary, job.maximumSalary)}
                     </span>
-                    <span>•</span>
+                    <span>·</span>
                     <span>{formatModality(job.modality)}</span>
-                    <span>•</span>
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    <span>·</span>
+                    <span className="row-inline">
                       <MapPin size={14} />
                       {formatLocation(job.city, job.state, job.country)}
                     </span>
-                    <span>•</span>
+                    <span>·</span>
                     <span>
-                      {job.contractType} • {job.seniorityLevel} ({job.experienceYears} anos)
+                      {job.contractType} · {job.seniorityLevel} ({job.experienceYears} anos)
                     </span>
                   </div>
 
                   {job.skills.length > 0 && (
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginTop: 12 }}>
+                    <div className="job-row-skills">
                       {job.skills.map((skill) => (
                         <span
                           key={`${job.id}-${skill.skillName}`}
@@ -343,7 +365,7 @@ export function JobsPage() {
 
                 <div className="job-row-actions">
                   <Link to={`/painel/swipe/${job.id}`} className="btn btn-primary btn-sm">
-                    <Flame size={15} />
+                    <TriageIcon size={15} />
                     Avaliar ({job.pendingApplicantsCount})
                   </Link>
 
@@ -407,16 +429,22 @@ export function JobsPage() {
       />
 
       {confirmCloseJob && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="close-job-title">
-          <div className="modal-card" style={{ textAlign: 'left' }}>
-            <h2 id="close-job-title" style={{ fontSize: '1.25rem', fontWeight: 800 }}>
+        <div
+          className="modal-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="close-job-title"
+          onClick={handleCloseBackdrop}
+        >
+          <div ref={closeModalRef} tabIndex={-1} className="modal-card modal-card-left">
+            <h2 id="close-job-title" className="drawer-title">
               Encerrar vaga definitivamente?
             </h2>
-            <p style={{ marginTop: 10, color: 'var(--color-text-secondary)', fontSize: '0.93rem' }}>
+            <p className="text-muted text-sm" style={{ marginTop: 10 }}>
               A vaga <strong>{confirmCloseJob.title}</strong> deixará de receber novas candidaturas e
               matches imediatamente.
             </p>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 22 }}>
+            <div className="drawer-footer" style={{ padding: '20px 0 0', borderTop: 0 }}>
               <button
                 type="button"
                 className="btn btn-secondary"
@@ -427,8 +455,7 @@ export function JobsPage() {
               </button>
               <button
                 type="button"
-                className="btn btn-danger-outline"
-                style={{ backgroundColor: 'var(--color-danger)', color: '#ffffff', borderColor: 'transparent' }}
+                className="btn btn-danger-solid"
                 onClick={handleCloseJob}
                 disabled={actionBusyId === confirmCloseJob.id}
               >

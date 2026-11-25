@@ -1,4 +1,4 @@
-import { Check, GraduationCap, Heart, MapPin, SlidersHorizontal, X } from 'lucide-react';
+import { Check, GraduationCap, Heart, MapPin, ShieldCheck, SlidersHorizontal, X } from 'lucide-react';
 import type { JobApplicantResponse, JobResponse } from '../types/api';
 import { resolveAssetUrl } from '../services/api';
 import {
@@ -24,6 +24,7 @@ const EXPLANATION_LABELS: Record<string, string> = {
   salary: 'Faixa salarial',
   modality: 'Modalidade',
   location: 'Localização',
+  certificates: 'Certificações verificadas',
 };
 
 export function CandidateDetailDrawer({
@@ -43,6 +44,9 @@ export function CandidateDetailDrawer({
   const photoSrc = resolveAssetUrl(applicant.photoUrl);
   const jobSkillSet = new Set(
     (selectedJob?.skills || []).map((s) => s.skillName.trim().toLowerCase())
+  );
+  const verifiedSkillSet = new Set(
+    (applicant.verifiedSkills || []).map((s) => s.trim().toLowerCase())
   );
 
   return (
@@ -88,6 +92,12 @@ export function CandidateDetailDrawer({
               <SlidersHorizontal size={14} />
               {applicant.compatibilityScore}% de compatibilidade
             </span>
+            {(applicant.priorityBonus ?? 0) > 0 && (
+              <span className="badge badge-mint tabular-nums">
+                <ShieldCheck size={13} />
+                +{applicant.priorityBonus} pts certificação
+              </span>
+            )}
             {applicant.completionPercentage != null && (
               <span className="badge badge-neutral tabular-nums">
                 Perfil {applicant.completionPercentage}% completo
@@ -146,12 +156,13 @@ export function CandidateDetailDrawer({
               <div className="row-wrap">
                 {applicant.skills.map((skill) => {
                   const matches = jobSkillSet.has(skill.trim().toLowerCase());
+                  const isVerified = verifiedSkillSet.has(skill.trim().toLowerCase());
                   return (
                     <span
                       key={skill}
-                      className={`chip ${matches ? 'chip-skill-soft' : 'chip-skill'}`}
+                      className={`chip ${matches || isVerified ? 'chip-skill-soft' : 'chip-skill'}`}
                     >
-                      {matches && <Check size={13} />}
+                      {isVerified ? <ShieldCheck size={13} /> : matches && <Check size={13} />}
                       {skill}
                     </span>
                   );

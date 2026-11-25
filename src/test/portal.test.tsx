@@ -91,6 +91,8 @@ const mockApplicants = [
     compatibilityScore: 95,
     explanation: { skills: 'Atende 1 de 1 obrigatórias' },
     appliedAt: '2026-10-21T10:00:00',
+    verifiedSkills: ['Java'],
+    priorityBonus: 5,
   },
   {
     candidateId: 3,
@@ -133,9 +135,16 @@ describe('Trabalhaki Empresas Web Portal', () => {
     ).toBeInTheDocument();
     expect(screen.getByText('Ana Clara Costa')).toBeInTheDocument();
 
-    // Interactive swipe demo match
+    // Interactive swipe demo pass -> Lucas Henrique Mendes appears, then like -> Match
+    await user.click(screen.getByRole('button', { name: /^Passar$/i }));
+    expect(screen.getByText('Lucas Henrique Mendes')).toBeInTheDocument();
+
     await user.click(screen.getByRole('button', { name: /Tenho interesse/i }));
-    expect(screen.getByText(/Match confirmado com Ana Clara Costa/i)).toBeInTheDocument();
+    expect(screen.getByText(/Match confirmado com Lucas Henrique Mendes/i)).toBeInTheDocument();
+
+    // Interactive Score 0-100 simulator switches scenario
+    await user.click(screen.getByRole('button', { name: /Pleno compatível · 83%/i }));
+    expect(screen.getByText(/83 \/ 100 pts/i)).toBeInTheDocument();
 
     // Navigate to company login (unified "Entrar" CTA)
     const loginLinks = screen.getAllByRole('link', { name: /^Entrar$/i });
@@ -272,6 +281,7 @@ describe('Trabalhaki Empresas Web Portal', () => {
     renderWithRoute('/painel/swipe/1');
 
     expect(await screen.findByText('Ana Clara Costa')).toBeInTheDocument();
+    expect(screen.getByText(/\+5 pts certificação/i)).toBeInTheDocument();
 
     // Pass first applicant -> Lucas appears
     await user.click(screen.getByRole('button', { name: /^Passar$/i }));

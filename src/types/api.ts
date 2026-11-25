@@ -145,6 +145,8 @@ export interface JobApplicantResponse {
   compatibilityScore: number;
   explanation: Record<string, string>;
   appliedAt: string;
+  verifiedSkills?: string[];
+  priorityBonus?: number;
 }
 
 export interface LikeResponse {

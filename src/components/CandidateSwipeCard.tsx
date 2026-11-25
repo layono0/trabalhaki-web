@@ -7,6 +7,7 @@ import {
   Clock,
   GraduationCap,
   MapPin,
+  ShieldCheck,
   SlidersHorizontal,
 } from 'lucide-react';
 import type { JobApplicantResponse, JobResponse } from '../types/api';
@@ -63,6 +64,9 @@ export function CandidateSwipeCard({
 
   const jobSkillSet = new Set(
     (selectedJob?.skills || []).map((s) => s.skillName.trim().toLowerCase())
+  );
+  const verifiedSkillSet = new Set(
+    (applicant.verifiedSkills || []).map((s) => s.trim().toLowerCase())
   );
 
   const handlePointerDown = (e: ReactPointerEvent<HTMLDivElement>) => {
@@ -183,10 +187,18 @@ export function CandidateSwipeCard({
             </div>
           </div>
 
-          <span className="score-pill">
-            <SlidersHorizontal size={14} />
-            {applicant.compatibilityScore}%
-          </span>
+          <div className="stack-xs" style={{ alignItems: 'flex-end' }}>
+            <span className="score-pill">
+              <SlidersHorizontal size={14} />
+              {applicant.compatibilityScore}%
+            </span>
+            {(applicant.priorityBonus ?? 0) > 0 && (
+              <span className="badge badge-mint badge-xs tabular-nums">
+                <ShieldCheck size={12} />
+                +{applicant.priorityBonus} pts certificação
+              </span>
+            )}
+          </div>
         </div>
 
         <div className="row-wrap">
@@ -226,12 +238,18 @@ export function CandidateSwipeCard({
             <div className="row-wrap">
               {applicant.skills.map((skill) => {
                 const isMatch = jobSkillSet.has(skill.trim().toLowerCase());
+                const isVerified = verifiedSkillSet.has(skill.trim().toLowerCase());
                 return (
                   <span
                     key={skill}
-                    className={`chip ${isMatch ? 'chip-skill-soft' : 'chip-skill'}`}
+                    className={`chip ${isMatch || isVerified ? 'chip-skill-soft' : 'chip-skill'}`}
+                    title={isVerified ? 'Competência verificada por certificado' : undefined}
                   >
-                    {isMatch && <Check size={13} />}
+                    {isVerified ? (
+                      <ShieldCheck size={13} />
+                    ) : (
+                      isMatch && <Check size={13} />
+                    )}
                     {skill}
                   </span>
                 );

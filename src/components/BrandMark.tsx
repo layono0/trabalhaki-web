@@ -5,48 +5,51 @@ interface BrandMarkProps {
   badge?: string;
   compact?: boolean;
   hideBadgeOnMobile?: boolean;
+  iconInverted?: boolean;
 }
 
-export function BrandIcon({ size = 36 }: { size?: number }) {
+interface BrandIconProps {
+  size?: number;
+  inverted?: boolean;
+}
+
+/**
+ * Geometric Match-T emblem: unified white T with locking Signal Mint match spark.
+ */
+export function BrandIcon({ size = 34, inverted = true }: BrandIconProps) {
   return (
     <span
-      className="brand-icon"
+      className={`brand-icon ${inverted ? 'brand-icon-inverted' : ''}`}
       style={{ width: size, height: size }}
       aria-hidden="true"
     >
       <svg
-        width={Math.round(size * 0.62)}
-        height={Math.round(size * 0.62)}
-        viewBox="0 0 24 24"
+        width={size}
+        height={size}
+        viewBox="0 0 32 32"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Two interlocking opportunity cards forming a geometric T-match emblem */}
         <rect
-          x="3"
-          y="3.5"
-          width="11"
-          height="13.5"
-          rx="3"
-          fill="#FFFFFF"
-          fillOpacity="0.34"
+          width="32"
+          height="32"
+          rx="9"
+          fill={inverted ? '#393BE7' : '#12152E'}
         />
         <rect
-          x="10"
-          y="7"
-          width="11"
-          height="13.5"
-          rx="3"
-          fill="#FFFFFF"
+          x="0.5"
+          y="0.5"
+          width="31"
+          height="31"
+          rx="8.5"
+          stroke="#FFFFFF"
+          strokeOpacity="0.14"
         />
         <path
-          d="M13 13.75L14.75 15.5L18.25 11.75"
-          stroke="#12152E"
-          strokeWidth="2.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
+          d="M7 10C7 8.89543 7.89543 8 9 8H16C17.1046 8 18 8.89543 18 10V22C18 23.1046 17.1046 24 16 24C14.8954 24 14 23.1046 14 22V12H9C7.89543 12 7 11.1046 7 10Z"
+          fill="#FFFFFF"
         />
-        <circle cx="8.5" cy="7.5" r="2.25" fill="#86E5A1" />
+        <rect className="brand-spark" x="20" y="8" width="5" height="4" rx="2" fill="#86E5A1" />
       </svg>
     </span>
   );
@@ -57,14 +60,17 @@ export function BrandMark({
   badge,
   compact = false,
   hideBadgeOnMobile = false,
+  iconInverted,
 }: BrandMarkProps) {
+  const isInverted = variant === 'inverted';
+
   return (
-    <span className={`brand-mark ${variant === 'inverted' ? 'brand-mark-inverted' : ''}`}>
-      <BrandIcon size={compact ? 32 : 36} />
+    <span className={`brand-mark ${isInverted ? 'brand-mark-inverted' : ''}`}>
+      <BrandIcon size={compact ? 30 : 34} inverted={iconInverted ?? true} />
       <span className="brand-wordmark">Trabalhaki</span>
       {badge && (
         <span
-          className={`badge ${variant === 'inverted' ? 'badge-on-dark' : 'badge-indigo'} ${
+          className={`brand-tag ${isInverted ? 'brand-tag-inverted' : ''} ${
             hideBadgeOnMobile ? 'hide-on-mobile' : ''
           }`}
         >

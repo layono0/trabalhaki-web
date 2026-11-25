@@ -115,24 +115,22 @@ export function AuthPage({ initialMode }: AuthPageProps) {
           <div className="auth-aside-body">
             <h1>Gerencie vagas e dê match nos talentos certos.</h1>
             <p className="auth-aside-lead">
-              Acesso exclusivo para empresas contratantes e recrutadores. Candidatos utilizam o
-              aplicativo mobile para explorar vagas e demonstrar interesse.
+              Portal exclusivo para empresas contratantes e recrutadores. Candidatos exploram vagas
+              e demonstram interesse pelo aplicativo mobile.
             </p>
           </div>
 
-          <div className="auth-highlights">
-            <div className="auth-highlight-item">
-              <CheckCircle2 size={18} className="icon-mint flow-list-icon" />
-              <span>Crie e controle suas vagas com requisitos, salário e benefícios.</span>
+          <div className="auth-preview-card" aria-hidden="true">
+            <div className="auth-preview-top">
+              <span className="badge badge-mint badge-xs">
+                <CheckCircle2 size={12} />
+                Match confirmado
+              </span>
+              <span className="auth-preview-score tabular-nums">94% compatível</span>
             </div>
-            <div className="auth-highlight-item">
-              <CheckCircle2 size={18} className="icon-mint flow-list-icon" />
-              <span>Avalie na triagem apenas profissionais que já curtiram a vaga.</span>
-            </div>
-            <div className="auth-highlight-item">
-              <CheckCircle2 size={18} className="icon-mint flow-list-icon" />
-              <span>Inicie o chat pós-match e conduza etapas do processo seletivo.</span>
-            </div>
+            <div className="auth-preview-name">Camila Ferreira</div>
+            <div className="auth-preview-role">Pessoa Desenvolvedora Full Stack · Remoto</div>
+            <div className="auth-preview-footer">Chat direto liberado para a empresa</div>
           </div>
         </div>
 
